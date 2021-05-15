@@ -1,3 +1,0 @@
-C:/Users/lempe/Documents/School/Polytechnique/INF443/inf443-vcl-main/scenes/inf443/Planetes/build/CMakeFiles/Planetes.dir
-C:/Users/lempe/Documents/School/Polytechnique/INF443/inf443-vcl-main/scenes/inf443/Planetes/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/lempe/Documents/School/Polytechnique/INF443/inf443-vcl-main/scenes/inf443/Planetes/build/CMakeFiles/ZERO_CHECK.dir
