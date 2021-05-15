@@ -1,0 +1,56 @@
+Detecting C compiler ABI info failed to compile with the following output:
+Change Dir: C:/Users/lempe/Documents/School/Polytechnique/INF443/inf443-vcl-main/scenes/inf443/04a_simulation_gravity/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Qt/Tools/Ninja/ninja.exe cmTC_48465 && [1/2] Building C object CMakeFiles\cmTC_48465.dir\CMakeCCompilerABI.c.obj
+Remarque : inclusion du fichier :  c:\qt\tools\cmake_64\share\cmake-3.19\modules\CMakeCompilerABI.h
+[2/2] Linking C executable cmTC_48465.exe
+FAILED: cmTC_48465.exe 
+cmd.exe /C "cd . && C:\Qt\Tools\CMake_64\bin\cmake.exe -E vs_link_exe --intdir=CMakeFiles\cmTC_48465.dir --rc=C:\PROGRA~2\MICROS~1.0\VC\bin\rc.exe --mt=CMAKE_MT-NOTFOUND --manifests  -- C:\PROGRA~2\MICROS~1.0\VC\bin\link.exe /nologo CMakeFiles\cmTC_48465.dir\CMakeCCompilerABI.c.obj  /out:cmTC_48465.exe /implib:cmTC_48465.lib /pdb:cmTC_48465.pdb /version:0.0 /machine:X86  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+MT: command "CMAKE_MT-NOTFOUND /nologo /manifest CMakeFiles\cmTC_48465.dir/intermediate.manifest /out:CMakeFiles\cmTC_48465.dir/embed.manifest /notify_update" failed (exit code 0x0) with the following output:
+The system cannot find the file specified
+ninja: build stopped: subcommand failed.
+
+
+
+
+Determining if the C compiler works failed with the following output:
+Change Dir: C:/Users/lempe/Documents/School/Polytechnique/INF443/inf443-vcl-main/scenes/inf443/04a_simulation_gravity/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Qt/Tools/Ninja/ninja.exe cmTC_0177e && [1/2] Building C object CMakeFiles\cmTC_0177e.dir\testCCompiler.c.obj
+[2/2] Linking C executable cmTC_0177e.exe
+FAILED: cmTC_0177e.exe 
+cmd.exe /C "cd . && C:\Qt\Tools\CMake_64\bin\cmake.exe -E vs_link_exe --intdir=CMakeFiles\cmTC_0177e.dir --rc=C:\PROGRA~2\MICROS~1.0\VC\bin\rc.exe --mt=CMAKE_MT-NOTFOUND --manifests  -- C:\PROGRA~2\MICROS~1.0\VC\bin\link.exe /nologo CMakeFiles\cmTC_0177e.dir\testCCompiler.c.obj  /out:cmTC_0177e.exe /implib:cmTC_0177e.lib /pdb:cmTC_0177e.pdb /version:0.0 /machine:X86  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+MT: command "CMAKE_MT-NOTFOUND /nologo /manifest CMakeFiles\cmTC_0177e.dir/intermediate.manifest /out:CMakeFiles\cmTC_0177e.dir/embed.manifest /notify_update" failed (exit code 0x0) with the following output:
+The system cannot find the file specified
+ninja: build stopped: subcommand failed.
+
+
+
+Detecting C compiler ABI info failed to compile with the following output:
+Change Dir: C:/Users/lempe/Documents/School/Polytechnique/INF443/inf443-vcl-main/scenes/inf443/04a_simulation_gravity/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Qt/Tools/Ninja/ninja.exe cmTC_03e53 && [1/2] Building C object CMakeFiles\cmTC_03e53.dir\CMakeCCompilerABI.c.obj
+Remarque : inclusion du fichier :  c:\qt\tools\cmake_64\share\cmake-3.19\modules\CMakeCompilerABI.h
+[2/2] Linking C executable cmTC_03e53.exe
+FAILED: cmTC_03e53.exe 
+cmd.exe /C "cd . && C:\Qt\Tools\CMake_64\bin\cmake.exe -E vs_link_exe --intdir=CMakeFiles\cmTC_03e53.dir --rc=C:\PROGRA~2\MICROS~1.0\VC\bin\rc.exe --mt=CMAKE_MT-NOTFOUND --manifests  -- C:\PROGRA~2\MICROS~1.0\VC\bin\link.exe /nologo CMakeFiles\cmTC_03e53.dir\CMakeCCompilerABI.c.obj  /out:cmTC_03e53.exe /implib:cmTC_03e53.lib /pdb:cmTC_03e53.pdb /version:0.0 /machine:X86  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+MT: command "CMAKE_MT-NOTFOUND /nologo /manifest CMakeFiles\cmTC_03e53.dir/intermediate.manifest /out:CMakeFiles\cmTC_03e53.dir/embed.manifest /notify_update" failed (exit code 0x0) with the following output:
+The system cannot find the file specified
+ninja: build stopped: subcommand failed.
+
+
+
+
+Determining if the C compiler works failed with the following output:
+Change Dir: C:/Users/lempe/Documents/School/Polytechnique/INF443/inf443-vcl-main/scenes/inf443/04a_simulation_gravity/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Qt/Tools/Ninja/ninja.exe cmTC_2d7f7 && [1/2] Building C object CMakeFiles\cmTC_2d7f7.dir\testCCompiler.c.obj
+[2/2] Linking C executable cmTC_2d7f7.exe
+FAILED: cmTC_2d7f7.exe 
+cmd.exe /C "cd . && C:\Qt\Tools\CMake_64\bin\cmake.exe -E vs_link_exe --intdir=CMakeFiles\cmTC_2d7f7.dir --rc=C:\PROGRA~2\MICROS~1.0\VC\bin\rc.exe --mt=CMAKE_MT-NOTFOUND --manifests  -- C:\PROGRA~2\MICROS~1.0\VC\bin\link.exe /nologo CMakeFiles\cmTC_2d7f7.dir\testCCompiler.c.obj  /out:cmTC_2d7f7.exe /implib:cmTC_2d7f7.lib /pdb:cmTC_2d7f7.pdb /version:0.0 /machine:X86  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+MT: command "CMAKE_MT-NOTFOUND /nologo /manifest CMakeFiles\cmTC_2d7f7.dir/intermediate.manifest /out:CMakeFiles\cmTC_2d7f7.dir/embed.manifest /notify_update" failed (exit code 0x0) with the following output:
+The system cannot find the file specified
+ninja: build stopped: subcommand failed.
+
+
+

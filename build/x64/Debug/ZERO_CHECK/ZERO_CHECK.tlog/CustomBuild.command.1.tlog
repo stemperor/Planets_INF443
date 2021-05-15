@@ -1,0 +1,10 @@
+^C:\USERS\LEMPE\DOCUMENTS\SCHOOL\POLYTECHNIQUE\INF443\INF443-VCL-MAIN\SCENES\INF443\PLANETES\BUILD\CMAKEFILES\B6933455CDAC4C9984BF8302E964FC82\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/lempe/Documents/School/Polytechnique/INF443/inf443-vcl-main/scenes/inf443/Planetes -BC:/Users/lempe/Documents/School/Polytechnique/INF443/inf443-vcl-main/scenes/inf443/Planetes/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/lempe/Documents/School/Polytechnique/INF443/inf443-vcl-main/scenes/inf443/Planetes/build/Planetes.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
