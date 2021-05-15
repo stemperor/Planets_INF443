@@ -1,3 +1,6 @@
+# Ignore build directories
+/build
+
 
 # C++ GITIGNORE
 # Prerequisites
