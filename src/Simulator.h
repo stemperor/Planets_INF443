@@ -72,6 +72,8 @@ public:
 
 			}
 
+
+			// Now we force conserved total energy
 			double expected_speed = std::sqrt(2 * (obj1.second.total_energy - obj1.second.potential_energy) / obj1.second.mass);
 			double speed = vcl::norm(obj1.second.speed);
 			
