@@ -2,6 +2,8 @@
 #include <iostream>
 #include <list>
 
+#include "Dual_Camera.h"
+
 
 using namespace vcl;
 
@@ -18,9 +20,10 @@ struct user_interaction_parameters {
 };
 user_interaction_parameters user;
 
+
 struct scene_environment
 {
-	camera_around_center camera;
+	Dual_camera camera;
 	mat4 projection;
 	vec3 light;
 };
@@ -36,6 +39,7 @@ struct particle_structure
 
 void mouse_move_callback(GLFWwindow* window, double xpos, double ypos);
 void window_size_callback(GLFWwindow* window, int width, int height);
+void key_event_callback(GLFWwindow* window, int key, int scan_code, int action, int mod);
 
 void initialize_data();
 void display_interface();
@@ -59,6 +63,7 @@ int main(int, char* argv[])
 	imgui_init(window);
 	glfwSetCursorPosCallback(window, mouse_move_callback);
 	glfwSetWindowSizeCallback(window, window_size_callback);
+	glfwSetKeyCallback(window, key_event_callback);
 	
 	std::cout<<"Initialize data ..."<<std::endl;
 	initialize_data();
@@ -68,6 +73,7 @@ int main(int, char* argv[])
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
 	{
+		scene.camera.set_center_of_rotation(particles.back().p);
 		scene.light = scene.camera.position();
 		user.fps_record.update();
 		
@@ -110,7 +116,7 @@ void initialize_data()
 	mesh_drawable::default_texture = opengl_texture_to_gpu(image_raw{1,1,image_color_type::rgba,{255,255,255,255}});
 
 	user.global_frame = mesh_drawable(mesh_primitive_frame());
-	scene.camera.distance_to_center = 10.0f;
+	scene.camera.set_distance_to_center(10.0f);
 	scene.camera.look_at({3,1,2}, {0,0,0.5}, {0,0,1});
 
 
@@ -202,17 +208,32 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
 
 
 
-	auto& camera = scene.camera;
-	if(!user.cursor_on_gui){
-		if(state.mouse_click_left && !state.key_ctrl)
+	Dual_camera& camera = scene.camera;
+	if (!user.cursor_on_gui) {
+		if (state.mouse_click_left && !state.key_ctrl)
 			scene.camera.manipulator_rotate_trackball(p0, p1);
-		if(state.mouse_click_left && state.key_ctrl)
-			camera.manipulator_translate_in_plane(p1-p0);
-		if(state.mouse_click_right)
-			camera.manipulator_scale_distance_to_center( (p1-p0).y );
+		if (state.mouse_click_right)
+			if (camera.getMode() == camera_mode::CENTERED)
+				camera.set_distance_to_center((p1 - p0).y);
 	}
 
+
+
 	user.mouse_prev = p1;
+}
+
+void key_event_callback(GLFWwindow* window, int key, int scan_code, int action, int mod) {
+
+	Dual_camera& camera = scene.camera;
+
+	if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+		camera.switch_to_free();
+		std::cout << "FREE CAMERA" << std::endl;
+	}
+	else if (key == GLFW_KEY_C && action == GLFW_PRESS) {
+		camera.switch_to_centered();
+		std::cout << "CENTERED CAMERA" << std::endl;
+	}
 }
 
 void opengl_uniform(GLuint shader, scene_environment const& current_scene)
