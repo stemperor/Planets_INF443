@@ -1,6 +1,7 @@
 #include "vcl/vcl.hpp"
 #include <iostream>
 #include <list>
+#include <chrono>
 
 #include "Dual_Camera.h"
 
@@ -30,26 +31,22 @@ struct scene_environment
 scene_environment scene;
 
 
-// Structure of a particle
-struct particle_structure
-{
-    vcl::vec3 p; // Position
-    vcl::vec3 v; // Speed
-};
-
 void mouse_move_callback(GLFWwindow* window, double xpos, double ypos);
 void window_size_callback(GLFWwindow* window, int width, int height);
 void key_event_callback(GLFWwindow* window, int key, int scan_code, int action, int mod);
+
+void mouvement_callback(GLFWwindow* window, double dt);
 
 void initialize_data();
 void display_interface();
 void display_frame();
 
 
-std::list<particle_structure> particles; // Storage of all currently active particles
 mesh_drawable sphere;
 mesh_drawable disc;
 timer_event_periodic timer(0.6f);
+
+vcl::timer_basic frame_timer;
 
 int main(int, char* argv[])
 {
@@ -70,10 +67,12 @@ int main(int, char* argv[])
 
 	std::cout<<"Start animation loop ..."<<std::endl;
 	user.fps_record.start();
+	frame_timer.start();
+
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
 	{
-		scene.camera.set_center_of_rotation(particles.back().p);
+
 		scene.light = scene.camera.position();
 		user.fps_record.update();
 		
@@ -99,6 +98,9 @@ int main(int, char* argv[])
 		imgui_render_frame(window);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+
+		double dt = frame_timer.update();
+		mouvement_callback(window, dt);
 	}
 
 	imgui_cleanup();
@@ -136,48 +138,12 @@ void display_frame()
 	draw(disc, scene);
 	float const dt = timer.update();
 
-	bool const new_particle = timer.event;
-	if (new_particle == true) {
-		vec3 const p0 = {0,0,0};
-
-		// Initial random velocity (x,y) components are uniformly distributed along a circle.
-        const float theta = rand_interval(0,2*pi);
-        const vec3 v0 = vec3( std::cos(theta), std::sin(theta), 5.0f);
-
-		particles.push_back({p0,v0});
-	}
-
-	// Evolve position of particles
-    const vec3 g = {0.0f,0.0f,-9.81f};
-    for(particle_structure& particle : particles)
-    {
-        const float m = 0.01f; // particle mass
-
-        vec3& p = particle.p;
-        vec3& v = particle.v;
-
-        const vec3 F = m*g;
-
-        // Numerical integration
-        v = v + dt*F/m;
-        p = p + dt*v;
-    }
-
-
-	// Remove particles that are too low
-    for(auto it = particles.begin(); it!=particles.end(); ){
-        if( it->p.z < -3)
-            it = particles.erase(it);
-		if(it!=particles.end())
-			++it;
-	}
-
 	// Display particles
-    for(particle_structure& particle : particles)
+    /*for(particle_structure& particle : particles)
     {
         sphere.transform.translate = particle.p;
         draw(sphere, scene);
-    }
+    }*/
 
 }
 
@@ -223,16 +189,49 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
 }
 
 void key_event_callback(GLFWwindow* window, int key, int scan_code, int action, int mod) {
-
+	glfw_state state = glfw_current_state(window);
 	Dual_camera& camera = scene.camera;
 
-	if (key == GLFW_KEY_F && action == GLFW_PRESS) {
-		camera.switch_to_free();
-		std::cout << "FREE CAMERA" << std::endl;
+	switch (key) {
+
+	case GLFW_KEY_F:
+		if (action == GLFW_PRESS) camera.switch_to_free();
+		break;
+
+	case GLFW_KEY_C:
+		if (action == GLFW_PRESS) camera.switch_to_centered();
+		break;
+
 	}
-	else if (key == GLFW_KEY_C && action == GLFW_PRESS) {
-		camera.switch_to_centered();
-		std::cout << "CENTERED CAMERA" << std::endl;
+
+}
+
+void mouvement_callback(GLFWwindow* window, double dt) {
+
+	float speed = 3.0f;
+
+	if (glfwGetKey(window, GLFW_KEY_W)) { // SORRY SORRY SORRY THIS IS QWERTY because glfwGetKey only takes physical key codes. Needs to be reimplemented from scratch
+		scene.camera.translate_position(scene.camera.front()*dt*speed);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_S)) {
+		scene.camera.translate_position(-scene.camera.front() * dt * speed);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_A)) {
+		scene.camera.translate_position(-scene.camera.right() * dt * speed);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_D)) {
+		scene.camera.translate_position(scene.camera.right() * dt * speed);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_SPACE)) {
+		scene.camera.translate_position(scene.camera.up() * dt * speed);
+	}
+
+	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)) {
+		scene.camera.translate_position(-scene.camera.up() * dt * speed);
 	}
 }
 
