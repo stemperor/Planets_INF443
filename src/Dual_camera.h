@@ -25,6 +25,7 @@ public:
 
 	void manipulator_rotate_trackball(vcl::vec2 const& p0, vcl::vec2 const& p1);
 
+	void translate_position(vcl::vec3 const& p);
 
 private:
 

@@ -65,3 +65,10 @@ void Dual_camera::manipulator_rotate_trackball(vcl::vec2 const& p0, vcl::vec2 co
 	}
 }
 
+void Dual_camera::translate_position(vcl::vec3 const& p)
+{
+	if (mode == camera_mode::FREE) {
+		free_camera.position_camera += p;
+	}
+}
+
