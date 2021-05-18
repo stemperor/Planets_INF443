@@ -1,0 +1,27 @@
+
+OrbitObject
+
+OrbitObject(parentmass, normal_au_plan, rayon, ellipticity)
+
+- masse
+- paramètres d'orbite
+- position(time)
+- vitesse(time)
+
+
+void init_orbit_circ(OrbitObject& obj, parentmass) // recursive
+void init_orbit(OrbitObject& parent, vitesse_init)
+
+
+PlaneteDrawable
+
+- OrbitObject&
+- std::vector<PlaneteDrawable> enfants
+- PlaneteDrawable& parents
+
+- nom
+- Rayon, axe de rotation, angle de rotation, vitesse de rotation
+- Texture
+
+
+Skybox
