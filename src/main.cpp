@@ -3,6 +3,7 @@
 #include <list>
 #include <chrono>
 
+#include "Simulator.h"
 #include "Dual_Camera.h"
 
 
@@ -40,11 +41,17 @@ void mouvement_callback(GLFWwindow* window, double dt);
 void initialize_data();
 void display_interface();
 void display_frame();
-
+void cleanup();
 
 mesh_drawable sphere;
 mesh_drawable disc;
 timer_event_periodic timer(0.6f);
+
+Simulator sim;
+Mass_object* mo1;
+Mass_object* mo2;
+Mass_object* mo3;
+Mass_object* mo4;
 
 vcl::timer_basic frame_timer;
 
@@ -101,11 +108,16 @@ int main(int, char* argv[])
 
 		double dt = frame_timer.update();
 		mouvement_callback(window, dt);
+
+		sim.simulate(dt, dt/20);
+
 	}
 
 	imgui_cleanup();
 	glfwDestroyWindow(window);
 	glfwTerminate();
+
+	cleanup();
 
 	return 0;
 }
@@ -127,8 +139,42 @@ void initialize_data()
 	sphere.shading.color = {0.5f,0.5f,1.0f};
 	disc = mesh_drawable( mesh_primitive_disc(2.0f) );
 	disc.transform.translate = {0,0,-r};
-	
 
+	mo1 = new Mass_object();
+	mo1->mass = 10;
+	mo1->attraction_level = 2;
+	mo1->position = vec3(0, 0, 1);
+	
+	mo2 = new Mass_object();
+	mo2->mass = 1;
+	mo2->position = vec3(1, 0, 1);
+	mo2->speed = vec3(0, 3, 0);
+	mo2->attraction_level = 1;
+
+	mo3 = new Mass_object();
+	mo3->mass = 1;
+	mo3->position = vec3(-1, 0, 1);
+	mo3->speed = vec3(0, 0, -3);
+	mo3->attraction_level = 1;
+
+	mo4 = new Mass_object();
+	mo4->mass = 10;
+	mo4->position = vec3(-1, -1, 1);
+	mo4->speed = vec3(0, 0, 3);
+	mo4->attraction_level = 1;
+
+	sim.add_object("center", mo1);
+	sim.add_object("turn", mo2);
+	//sim.add_object("turn2", mo3);
+	//sim.add_object("big", mo4);
+
+}
+
+void cleanup() {
+	delete mo1;
+	delete mo2;
+	delete mo3;
+	delete mo4;
 }
 
 
@@ -144,6 +190,22 @@ void display_frame()
         sphere.transform.translate = particle.p;
         draw(sphere, scene);
     }*/
+
+	sphere.transform.translate = mo1->position;
+	sphere.transform.scale = 3.0f;
+	draw(sphere, scene);
+
+	sphere.transform.translate = mo2->position;
+	sphere.transform.scale = 1.0f;
+	draw(sphere, scene);
+
+	sphere.transform.translate = mo3->position;
+	sphere.transform.scale = 1.0f;
+	//draw(sphere, scene);
+
+	sphere.transform.translate = mo4->position;
+	sphere.transform.scale = 2.0f;
+	//draw(sphere, scene);
 
 }
 
