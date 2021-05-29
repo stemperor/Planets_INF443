@@ -23,9 +23,14 @@ public:
 	void set_distance_to_center(double dtc);
 	void look_at(vcl::vec3 eye, vcl::vec3 center, vcl::vec3 up);
 
-	void manipulator_rotate_trackball(vcl::vec2 const& p0, vcl::vec2 const& p1);
+	void manipulator_rotate_trackball(vcl::vec2 const& p0, vcl::vec2 const& p1, double t);
 
 	void translate_position(vcl::vec3 const& p);
+
+	vcl::mat4 matrix_view_or_only() const;
+
+
+	void update(double t, vcl::glfw_state state);
 
 private:
 
@@ -36,6 +41,12 @@ private:
 
 	vcl::camera_base* current_camera = &centered_camera;
 
+
+
+	vcl::vec2 dp_trackball;
+
+	float inertia = 1;
+	double last_inertia = 0;
 
 
 };

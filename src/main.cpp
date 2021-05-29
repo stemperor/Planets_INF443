@@ -2,10 +2,11 @@
 #include <iostream>
 #include <list>
 #include <chrono>
+#include <string>
+#include <fstream>
 
-#include "Simulator.h"
-#include "Dual_Camera.h"
-
+//#include "Simulator.h"
+#include "scene_initializer.hpp"
 
 using namespace vcl;
 
@@ -23,18 +24,13 @@ struct user_interaction_parameters {
 user_interaction_parameters user;
 
 
-struct scene_environment
-{
-	Dual_camera camera;
-	mat4 projection;
-	vec3 light;
-};
 scene_environment scene;
 
 
 void mouse_move_callback(GLFWwindow* window, double xpos, double ypos);
 void window_size_callback(GLFWwindow* window, int width, int height);
 void key_event_callback(GLFWwindow* window, int key, int scan_code, int action, int mod);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 
 void mouvement_callback(GLFWwindow* window, double dt);
 
@@ -43,17 +39,16 @@ void display_interface();
 void display_frame();
 void cleanup();
 
-mesh_drawable sphere;
-mesh_drawable disc;
 timer_event_periodic timer(0.6f);
 
-Simulator sim;
-Mass_object* mo1;
-Mass_object* mo2;
-Mass_object* mo3;
-Mass_object* mo4;
+mesh_drawable sunbillboard;
 
 vcl::timer_basic frame_timer;
+vcl::timer_basic just_for_time;
+
+Planete_Drawable* selected = nullptr;
+
+Belt belt;
 
 int main(int, char* argv[])
 {
@@ -68,6 +63,10 @@ int main(int, char* argv[])
 	glfwSetCursorPosCallback(window, mouse_move_callback);
 	glfwSetWindowSizeCallback(window, window_size_callback);
 	glfwSetKeyCallback(window, key_event_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
 	
 	std::cout<<"Initialize data ..."<<std::endl;
 	initialize_data();
@@ -75,15 +74,19 @@ int main(int, char* argv[])
 	std::cout<<"Start animation loop ..."<<std::endl;
 	user.fps_record.start();
 	frame_timer.start();
+	just_for_time.start();
+
+	glGenQueries(1, &queryid1);
+	glGenQueries(1, &queryid2);
 
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
 	{
 
-		scene.light = scene.camera.position();
+		scene.light = { 0.0f, 0.0f, 0.0f };
 		user.fps_record.update();
 		
-		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		glClear(GL_DEPTH_BUFFER_BIT);
 		imgui_create_frame();
@@ -95,21 +98,24 @@ int main(int, char* argv[])
 		ImGui::Begin("GUI",NULL,ImGuiWindowFlags_AlwaysAutoResize);
 		user.cursor_on_gui = ImGui::GetIO().WantCaptureMouse;
 
-		if(user.gui.display_frame) draw(user.global_frame, scene);
+		double dt = frame_timer.update();
+		mouvement_callback(window, dt);
+
+		belt.update_coord(dt);
+
+		just_for_time.update();
+		scene.camera.update(just_for_time.t, glfw_current_state(window));
+
 
 		display_interface();
 		display_frame();
+
 
 
 		ImGui::End();
 		imgui_render_frame(window);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-
-		double dt = frame_timer.update();
-		mouvement_callback(window, dt);
-
-		sim.simulate(dt, dt/20);
 
 	}
 
@@ -124,65 +130,108 @@ int main(int, char* argv[])
 
 void initialize_data()
 {
-	// Basic setups of shaders and camera
-	GLuint const shader_mesh = opengl_create_shader_program(opengl_shader_preset("mesh_vertex"), opengl_shader_preset("mesh_fragment"));
-	mesh_drawable::default_shader = shader_mesh;
-	mesh_drawable::default_texture = opengl_texture_to_gpu(image_raw{1,1,image_color_type::rgba,{255,255,255,255}});
 
-	user.global_frame = mesh_drawable(mesh_primitive_frame());
-	scene.camera.set_distance_to_center(10.0f);
-	scene.camera.look_at({3,1,2}, {0,0,0.5}, {0,0,1});
+	Scene_initializer s = Scene_initializer::getInstance();
 
+	// https://www.solarsystemscope.com/textures/
 
-	float const r = 0.05f; // radius of the sphere
-	sphere = mesh_drawable( mesh_primitive_sphere(r) );
-	sphere.shading.color = {0.5f,0.5f,1.0f};
-	disc = mesh_drawable( mesh_primitive_disc(2.0f) );
-	disc.transform.translate = {0,0,-r};
+	sunbillboard = mesh_drawable(mesh_primitive_grid({ -0.05, -0.05, 0 }, { -0.05, 0.05, 0 }, { 0.05, 0.05, 0 }, { 0.05, -0.05, 0 }, 2, 2));
 
-	mo1 = new Mass_object();
-	mo1->mass = 10;
-	mo1->attraction_level = 2;
-	mo1->position = vec3(0, 0, 1);
-	
-	mo2 = new Mass_object();
-	mo2->mass = 1;
-	mo2->position = vec3(1, 0, 1);
-	mo2->speed = vec3(0, 3, 0);
-	mo2->attraction_level = 1;
+	belt = create_belt(*(s.get_object("Sun")), { 1, 0, 0 }, 10, 1, 100, 1, 0.20, 0.5);
 
-	mo3 = new Mass_object();
-	mo3->mass = 1;
-	mo3->position = vec3(-1, 0, 1);
-	mo3->speed = vec3(0, 0, -3);
-	mo3->attraction_level = 1;
-
-	mo4 = new Mass_object();
-	mo4->mass = 10;
-	mo4->position = vec3(-1, -1, 1);
-	mo4->speed = vec3(0, 0, 3);
-	mo4->attraction_level = 1;
-
-	sim.add_object("center", mo1);
-	sim.add_object("turn", mo2);
-	//sim.add_object("turn2", mo3);
-	//sim.add_object("big", mo4);
 
 }
 
 void cleanup() {
-	delete mo1;
-	delete mo2;
-	delete mo3;
-	delete mo4;
+
 }
 
 
 void display_frame()
 {
 
-	draw(disc, scene);
-	float const dt = timer.update();
+	Scene_initializer s = Scene_initializer::getInstance();
+
+
+	float const dt = just_for_time.update();
+	double t = just_for_time.t / 2;
+
+
+
+
+
+	scene.translate_drawing = false;
+	glDisable(GL_DEPTH_TEST);
+	mesh_drawable& skybox = s.get_mesh("LQ Sphere");
+	skybox.shading.phong.ambient = 3.0f;
+	skybox.shader = s.get_shader("Skybox Shader");
+	skybox.texture = s.get_texture("Stars");
+	skybox.transform = vcl::affine_rts();
+	draw(skybox, scene, false);
+	glEnable(GL_DEPTH_TEST);
+	scene.translate_drawing = true;
+
+
+
+
+	for (auto ast : belt.elements) {
+
+		mesh_drawable x = ast.apparence;
+		//auto x = s.get_mesh("LQ Sphere");
+
+		x.shader = s.get_shader("Simple Querry");
+		x.shading.color = { 1, 0 ,0 };
+
+		x.transform.translate = ast.position;
+
+		glUseProgram(x.shader); opengl_check;
+
+		// Send uniforms for this shader
+		opengl_uniform(x.shader, scene);
+		opengl_uniform(x.shader, "model", x.transform.matrix(), false);
+
+		glBindVertexArray(x.vao);   opengl_check;
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, x.vbo.at("index")); opengl_check;
+		glDrawElements(GL_TRIANGLES, GLsizei(x.number_triangles * 3), GL_UNSIGNED_INT, nullptr); opengl_check;
+
+		// Clean buffers
+		glBindVertexArray(0);
+	}
+
+
+	//scene.camera.set_center_of_rotation(s.get_object("Sun")->position(t));
+
+	scene.camera.set_center_of_rotation(belt.elements[0].position);
+	
+	s.draw(t, scene);
+
+	mesh_drawable tester = s.get_mesh("LQ Sphere");
+
+
+	sunbillboard.transform.rotate = vcl::inverse(vcl::rotation(mat3(scene.camera.matrix_view_or_only())));
+
+	sunbillboard.transform.scale = s.get_object("Sun")->radius*1.1;
+	//sunbillboard.transform.translate = -s.get_object("Sun")->radius * scene.camera.front();
+	sunbillboard.shader = s.get_shader("Simple Querry");
+	float occ = query_occlusion(sunbillboard, scene);
+
+	sunbillboard.shader = s.get_shader("Sun Billboard Shader");
+	sunbillboard.transform.scale = s.get_object("Sun")->radius * 4;
+
+	drawsunflares(sunbillboard, scene, t);
+
+	sunbillboard.transform.translate = vcl::vec3();
+	sunbillboard.shader = s.get_shader("Sun Shine Shader");
+	sunbillboard.transform.scale = vcl::norm(scene.camera.position()) * 13;
+	sunbillboard.texture = s.get_texture("Sun Shine");
+
+
+
+	glBlendFunc(GL_ONE, GL_ONE);
+	glDisable(GL_DEPTH_TEST);
+	drawsunshine(sunbillboard, scene, scene.camera.front().z, occ*3);
+	glEnable(GL_DEPTH_TEST);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	// Display particles
     /*for(particle_structure& particle : particles)
@@ -191,26 +240,9 @@ void display_frame()
         draw(sphere, scene);
     }*/
 
-	sphere.transform.translate = mo1->position;
-	sphere.transform.scale = 3.0f;
-	draw(sphere, scene);
-
-	sphere.transform.translate = mo2->position;
-	sphere.transform.scale = 1.0f;
-	draw(sphere, scene);
-
-	sphere.transform.translate = mo3->position;
-	sphere.transform.scale = 1.0f;
-	//draw(sphere, scene);
-
-	sphere.transform.translate = mo4->position;
-	sphere.transform.scale = 2.0f;
-	//draw(sphere, scene);
+	
 
 }
-
-
-
 
 
 void display_interface()
@@ -224,7 +256,7 @@ void window_size_callback(GLFWwindow* , int width, int height)
 {
 	glViewport(0, 0, width, height);
 	float const aspect = width / static_cast<float>(height);
-	scene.projection = projection_perspective(50.0f*pi/180.0f, aspect, 0.1f, 100.0f);
+	scene.projection = projection_perspective(50.0f*pi/180.0f, aspect, 0.01f, 10000.0f);
 }
 
 
@@ -234,12 +266,12 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
 	vec2 const& p0 = user.mouse_prev;
 	glfw_state state = glfw_current_state(window);
 
-
+	just_for_time.update();
 
 	Dual_camera& camera = scene.camera;
 	if (!user.cursor_on_gui) {
 		if (state.mouse_click_left && !state.key_ctrl)
-			scene.camera.manipulator_rotate_trackball(p0, p1);
+			scene.camera.manipulator_rotate_trackball(p0, p1, just_for_time.t);
 		if (state.mouse_click_right)
 			if (camera.getMode() == camera_mode::CENTERED)
 				camera.set_distance_to_center((p1 - p0).y);
@@ -266,6 +298,36 @@ void key_event_callback(GLFWwindow* window, int key, int scan_code, int action, 
 
 	}
 
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	glfw_state state = glfw_current_state(window);
+	Scene_initializer s = Scene_initializer::getInstance();
+
+	if (!user.cursor_on_gui) {
+		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && state.key_ctrl) {
+			double xpos, ypos;
+			glfwGetCursorPos(window, &xpos, &ypos);
+			int width, height;
+			glfwGetWindowSize(window, &width, &height);
+
+	
+			xpos = (xpos / width - 0.5)*2;
+			ypos = ((float)(height - ypos - 1) / height - 0.5) * 2;
+
+			float view_angle = 50.0f * pi / 180.0f; // MUST BE GLOBALLY ACCESSIBLE !!
+			float min_z = 0.01f; // GLOBAL TOO !
+
+			vec3 ray = scene.camera.front() + std::tan(view_angle) * min_z * (xpos * scene.camera.right() + ypos * scene.camera.up());
+
+			float good_angle = 5.0f * pi / 180.0f; // to be changed;
+
+			//Planete_Drawable* selected = s.closest_angle(ray);
+
+		}
+	}
+		
 }
 
 void mouvement_callback(GLFWwindow* window, double dt) {
@@ -296,13 +358,3 @@ void mouvement_callback(GLFWwindow* window, double dt) {
 		scene.camera.translate_position(-scene.camera.up() * dt * speed);
 	}
 }
-
-void opengl_uniform(GLuint shader, scene_environment const& current_scene)
-{
-	opengl_uniform(shader, "projection", current_scene.projection);
-	opengl_uniform(shader, "view", current_scene.camera.matrix_view());
-	opengl_uniform(shader, "light", current_scene.light, false);
-}
-
-
-
