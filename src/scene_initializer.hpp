@@ -56,6 +56,10 @@ public:
         delete_rec(parent);
     }
 
+    void load_texture(std::string path, std::string name) {
+        textures[name] = opengl_texture_to_gpu(vcl::image_load_png(path) , GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+    }
+
 private:
     Scene_initializer() {
 
@@ -89,6 +93,8 @@ private:
         buffer7 << t7.rdbuf();
 
 
+        std::string base_path = ".\\src\\assets\\";
+
         shaders["Mesh Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), vcl::opengl_shader_preset("mesh_fragment"));
         shaders["Earth Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), buffer2.str());
         shaders["Skybox Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), buffer.str());
@@ -101,58 +107,80 @@ private:
         vcl::mesh_drawable::default_shader = shaders["Mesh Shader"];
         vcl::mesh_drawable::default_texture = vcl::opengl_texture_to_gpu(vcl::image_raw{ 1,1,vcl::image_color_type::rgba,{255,255,255,255} });
 
-        vcl::image_raw const im_earth_night = vcl::image_load_png(".\\src\\assets\\8k_earth_nightmap2.png");
-        vcl::image_raw const im_earth = vcl::image_load_png(".\\src\\assets\\8k_earth_daymap.png");
-        vcl::image_raw const im_stars = vcl::image_load_png(".\\src\\assets\\8k_stars_milky_way.png");
-
-        vcl::image_raw const im_moon = vcl::image_load_png(".\\src\\assets\\2k_moon.png");
-        vcl::image_raw const im_mars = vcl::image_load_png(".\\src\\assets\\2k_mars.png");
-
-
-        vcl::image_raw const im_earth_spec = vcl::image_load_png(".\\src\\assets\\2k_earth_specular_map.png");
-        vcl::image_raw const im_earth_norm = vcl::image_load_png(".\\src\\assets\\8k_earth_normal_map.png");
-        vcl::image_raw const im_earth_clouds = vcl::image_load_png(".\\src\\assets\\2k_earth_clouds2.png");
-
-        vcl::image_raw const im_sun_shine = vcl::image_load_png(".\\src\\assets\\star_glow.png");
-
-        vcl::image_raw const pointer = vcl::image_load_png(".\\src\\assets\\marker.png");
 
         // Send this image to the GPU, and get its identifier texture_image_id
-        textures["Earth Night"] = opengl_texture_to_gpu(im_earth_night, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-        textures["Earth Day"] = opengl_texture_to_gpu(im_earth, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-        textures["Stars"] = opengl_texture_to_gpu(im_stars, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 
-        textures["Earth Specular"] = opengl_texture_to_gpu(im_earth_spec, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-        textures["Earth Norm"] = opengl_texture_to_gpu(im_earth_norm, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-        textures["Earth Clouds"] = opengl_texture_to_gpu(im_earth_clouds, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-        textures["Moon"] = opengl_texture_to_gpu(im_moon, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-        textures["Mars"] = opengl_texture_to_gpu(im_mars, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+        load_texture(base_path + "8k_earth_nightmap2.png", "Earth Night");
+        load_texture(base_path + "8k_earth_daymap.png", "Earth Day");
+        load_texture(base_path + "2k_earth_specular_map.png", "Earth Specular");
+        load_texture(base_path + "2k_earth_clouds2.png", "Earth Clouds");
+        load_texture(base_path + "8k_earth_normal_map.png", "Earth Norm");
 
-        textures["Sun Shine"] = opengl_texture_to_gpu(im_sun_shine, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+        load_texture(base_path + "8k_stars_milky_way.png", "Stars");
 
-        textures["Pointer"] = opengl_texture_to_gpu(pointer, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+        load_texture(base_path + "2k_moon.png", "Moon");
+        load_texture(base_path + "2k_mars.png", "Mars");
+        load_texture(base_path + "2k_mercury.png", "Mercury");
+        load_texture(base_path + "2k_venus.png", "Venus");
+        load_texture(base_path + "2k_jupiter.png", "Jupiter");
+        load_texture(base_path + "2k_saturn.png", "Saturn");
+        load_texture(base_path + "2k_uranus.png", "Uranus");
+        load_texture(base_path + "2k_neptune.png", "Neptune");
+
+        load_texture(base_path + "2k_saturn_ring_alpha.png", "Saturn Rings");
+
+        load_texture(base_path + "star_glow.png", "Sun Shine");
+        load_texture(base_path + "marker.png", "Pointer");
 
 
 
-        float const r = 1.0f; // TO BE CHANGED
+
+        float const r = 1.0f; 
         
         meshes["LQ Sphere"] = new vcl::mesh_drawable(vcl::mesh_primitive_sphere(r, { 0, 0, 0 }, 60, 40));
+        meshes["LLQ Sphere"] = new vcl::mesh_drawable(vcl::mesh_primitive_sphere(r, { 0, 0, 0 }, 5, 5));
         meshes["HQ Sphere"] = new vcl::mesh_drawable(vcl::mesh_primitive_sphere(r, { 0, 0, 0 }, 100, 100));
 
         // Initialize Sun
 
         parent = new Sun_Drawable(get_mesh("LQ Sphere"));
         parent->name = "Sun";
-        parent->radius = 20;
+        parent->radius = 5;
 
         parent->texture = textures["Sun"];
         parent->shader = shaders["Sun Shader"];
 
-        float sun_mass = 10;
+        float sun_mass = 40000;
 
+        float r_scale_tell = 1.0f;
+        float r_scale_gas = 1.0f;
         // Initialize Earth
 
-        Earth_Drawable* Earth = new Earth_Drawable(get_mesh("HQ Sphere"), { 70.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
+       
+
+        Planete_Drawable* mercury = new Planete_Drawable(get_mesh("LQ Sphere"), { 200.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
+        parent->enfants.push_back(mercury);
+
+        mercury->parent = parent;
+        mercury->name = "Mercury";
+        mercury->radius = 0.4 * r_scale_tell;
+        mercury->rotation_speed = 0.0;
+        mercury->shader = shaders["Mesh Shader"];
+        mercury->planete->mass = 1;
+        mercury->texture = textures["Mercury"];
+
+        Planete_Drawable* venus = new Planete_Drawable(get_mesh("LQ Sphere"), { 350.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
+        parent->enfants.push_back(venus);
+
+        venus->parent = parent;
+        venus->name = "Venus";
+        venus->radius = 0.9 * r_scale_tell;
+        venus->rotation_speed = 0.0;
+        venus->shader = shaders["Mesh Shader"];
+        venus->planete->mass = 1;
+        venus->texture = textures["Venus"];
+
+        Earth_Drawable* Earth = new Earth_Drawable(get_mesh("HQ Sphere"), { 500.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
         parent->enfants.push_back(Earth);
 
         Earth->parent = parent;
@@ -163,7 +191,7 @@ private:
         Earth->spec_texture = textures["Earth Specular"];
         Earth->night_texture = textures["Earth Night"];
 
-        Earth->radius = 4.0;
+        Earth->radius = 1.0 * r_scale_tell;
         Earth->name = "Earth";
         Earth->rotation_speed = 0.0;
         Earth->shader = shaders["Earth Shader"];
@@ -180,30 +208,73 @@ private:
         Earth->cloud_shading.phong.ambient = 0.0f;
         Earth->cloud_shading.phong.diffuse = 1.0f;
 
-        Planete_Drawable* moon = new Planete_Drawable(get_mesh("LQ Sphere"), { 2.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, Earth->planete->mass);
+        Planete_Drawable* moon = new Planete_Drawable(get_mesh("LQ Sphere"), { 20.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, Earth->planete->mass);
         Earth->enfants.push_back(moon);
 
         moon->parent = Earth;
         moon->name = "Moon";
-        moon->radius = 0.8;
+        moon->radius = 0.2;
         moon->rotation_speed = 0.0;
         moon->shader = shaders["Mesh Shader"];
         moon->planete->mass = 0.5;
         moon->texture = textures["Moon"];
 
-
-        Planete_Drawable* mars = new Planete_Drawable(get_mesh("LQ Sphere"), { 120.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
+        Planete_Drawable* mars = new Planete_Drawable(get_mesh("LQ Sphere"), { 750.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
         parent->enfants.push_back(mars);
 
         mars->parent = parent;
         mars->name = "Mars";
-        mars->radius = 4.0;
+        mars->radius = 0.5*r_scale_tell;
         mars->rotation_speed = 0.0;
         mars->shader = shaders["Mesh Shader"];
         mars->planete->mass = 1;
         mars->texture = textures["Mars"];
 
 
+        Planete_Drawable* jupiter = new Planete_Drawable(get_mesh("LQ Sphere"), { 2500.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
+        parent->enfants.push_back(jupiter);
+
+        jupiter->parent = parent;
+        jupiter->name = "Jupiter";
+        jupiter->radius = 11 * r_scale_gas;
+        jupiter->rotation_speed = 0.0;
+        jupiter->shader = shaders["Mesh Shader"];
+        jupiter->planete->mass = 1;
+        jupiter->texture = textures["Jupiter"];
+
+
+        Planete_Drawable* saturn = new Planete_Drawable(get_mesh("LQ Sphere"), { 5000.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
+        parent->enfants.push_back(saturn);
+
+        saturn->parent = parent;
+        saturn->name = "Saturn";
+        saturn->radius = 9 * r_scale_gas;
+        saturn->rotation_speed = 0.0;
+        saturn->shader = shaders["Mesh Shader"];
+        saturn->planete->mass = 1;
+        saturn->texture = textures["Saturn"];
+
+        Planete_Drawable* uranus = new Planete_Drawable(get_mesh("LQ Sphere"), { 10000.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
+        parent->enfants.push_back(uranus);
+
+        uranus->parent = parent;
+        uranus->name = "Uranus";
+        uranus->radius = 4 * r_scale_gas;
+        uranus->rotation_speed = 0.0;
+        uranus->shader = shaders["Mesh Shader"];
+        uranus->planete->mass = 1;
+        uranus->texture = textures["Uranus"];
+
+        Planete_Drawable* neptune = new Planete_Drawable(get_mesh("LQ Sphere"), { 15000.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
+        parent->enfants.push_back(neptune);
+
+        neptune->parent = parent;
+        neptune->name = "Neptune";
+        neptune->radius = 3.8 * r_scale_gas;
+        neptune->rotation_speed = 0.0;
+        neptune->shader = shaders["Mesh Shader"];
+        neptune->planete->mass = 1;
+        neptune->texture = textures["Neptune"];
 
 
     }
@@ -240,10 +311,8 @@ private:
         vcl::vec3 rel_pos = p->position(t) - c_pos;
         double dist = vcl::norm(rel_pos);
         float angle = std::acos(vcl::dot(rel_pos, ray) / dist);
-        float angle_min = std::atan(p->radius * 1.3/ dist);
+        float angle_min = std::atan(p->radius_drawn() * 1.3/ dist);
 
-        std::cout << "angle " << p->name << " " << angle << std::endl;
-        std::cout << "angle_min " << angle_min << std::endl;
 
         Object_Drawable* best = nullptr;
 
@@ -283,7 +352,6 @@ private:
     }
 
     void draw_rec_(double t, scene_environment scene, Object_Drawable* p) {
-        std::cout << p->name << std::endl;
         p->draw_obj(t, scene);
 
         for (auto child : p->enfants)

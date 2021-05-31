@@ -45,20 +45,20 @@ void main()
 	
 	vec3 pos = fragment.position;
 	
-	float radius = 40;
+	float radius = 20;
 	
-	float n = (noise(vec4(pos, t/60), 4, 40.0, 0.7) + 1.0)*0.5;
+	float n = (noise(vec4(pos/20, t/60), 4, 40.0, 0.7) + 1.0)*0.5;
 	
 	
 	float s = 0.4;
 	float frequency = 3.0;
-	float t1 = snoise(vec4(pos, 1.0) * frequency) - s;
-	float t2 = snoise(vec4((pos + radius), 1.0) * frequency) - s;
+	float t1 = snoise(vec4(pos/20, 1.0) * frequency) - s;
+	float t2 = snoise(vec4((pos/20 + radius), 1.0) * frequency) - s;
 	float ss = (max(t1, 0.0) * max(t2, 0.0)) * 3.0;
 	
 	float basenoise = n - ss;
 	
-	vec3 color_object  = vec3(basenoise, basenoise, basenoise);
+	vec3 color_object  = basenoise * vec3(1.0, 0.8, 0.8);
 	
 	vec3 color_shading = color_object;
 

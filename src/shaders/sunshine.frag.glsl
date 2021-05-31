@@ -53,7 +53,7 @@ void main()
 
 	 
 
-	float dist = length(fragment.position)*200;
+	float dist = length(fragment.position)*800;
 
 	float spikeBrightness = ((1.0 / pow(dist + 0.15, 3)) - 1.0);
 	spikeBrightness = spikeBrightness * 0.02 * clamp(spikeVal, 0.0, 1.0)*2;
@@ -63,10 +63,12 @@ void main()
 
 	vec3 color = texture(image_texture, uv_image).rgb + spikeBrightness;
 	
+	float occ_corrected = sun_occlusion;
+	
 	if (sun_occlusion > 1){
-		sun_occlusion = 1.0f/ sun_occlusion;
+		occ_corrected = 1.0f/ sun_occlusion;
 	}
-	FragColor = vec4(color, 1.0)*sun_occlusion;
+	FragColor = vec4(color, 1.0)*occ_corrected;
 }
 
 

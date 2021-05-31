@@ -35,14 +35,21 @@ vcl::rotation Dual_camera::orientation() const
 	return current_camera->orientation();
 }
 
-void Dual_camera::set_center_of_rotation(vcl::vec3 cor)
+void Dual_camera::set_center_of_rotation(vcl::vec3 cor, float minrad)
 {
+	min_rad = minrad;
+	centered_camera.distance_to_center = std::max(centered_camera.distance_to_center, minrad + 0.01f);
 	centered_camera.center_of_rotation = cor;
+
 }
 
 void Dual_camera::slide_distance_to_center(double dtc)
 {
-	if (mode == camera_mode::CENTERED)
+	if (mode == camera_mode::CENTERED) {
+
+		centered_camera.distance_to_center = min_rad + (centered_camera.distance_to_center - min_rad)* (1.0f + dtc);
+		centered_camera.distance_to_center = std::max(centered_camera.distance_to_center, 0.01f);
+	}
 		centered_camera.manipulator_scale_distance_to_center(dtc);
 }
 

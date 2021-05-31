@@ -11,6 +11,7 @@ void print(float s, std::string mess = "") {
     std::cout << mess << ": " << s << std::endl;
 };
 
+float p_size = 1.0f;
 
 
 
@@ -62,7 +63,7 @@ struct Object_Drawable {
     std::string name;
     float radius;
     vcl::vec3 rotation_axis = vcl::vec3(1, 0, 0);
-    float rotation_speed;
+    float rotation_speed = 0.0f;
 
     float rotation_angle(float t) {
         return (rotation_speed * t);
@@ -83,14 +84,19 @@ struct Object_Drawable {
 
     Object_Drawable(mesh_drawable& d) :mesh(d) {}
 
+
+    float virtual radius_drawn(){
+        return radius;
+    }
+
     void virtual setup_mesh(double t) {
         mesh.shader = shader;
         mesh.shading = shading;
 
-        //mesh.transform.rotate = vcl::rotation(rotation_axis, rotation_angle(t));
+        mesh.transform.rotate = vcl::rotation(rotation_axis, rotation_angle(t));
         mesh.transform.translate = position(t);
 
-        mesh.transform.scale = radius;
+        mesh.transform.scale = radius*p_size;
         mesh.texture = texture;
     }
 
@@ -116,6 +122,11 @@ struct Planete_Drawable: public Object_Drawable {       //Il faudrait avoir un m
     Planete_Drawable(mesh_drawable& d) : Object_Drawable(d) {
 
     }
+
+    float virtual radius_drawn() {
+        return radius*p_size;
+    }
+
 
     virtual vcl::vec3 position(double t) {
         if (parent == nullptr)
@@ -148,7 +159,7 @@ struct Earth_Drawable : public Planete_Drawable{       //Il faudrait avoir un me
 
     shading_parameters_phong cloud_shading;
 
-    double cloud_height = 0.05;
+    double cloud_height = 0.015;
 
     Earth_Drawable(mesh_drawable & d, vec3 initpos, vec3 axis, float parentmass) :Planete_Drawable(d, initpos, axis, parentmass) {}
 
@@ -156,7 +167,7 @@ struct Earth_Drawable : public Planete_Drawable{       //Il faudrait avoir un me
         setup_mesh(t);
         drawearth(mesh, scene, night_texture, spec_texture, bump_texture);
 
-        mesh.transform.scale += cloud_height;
+        mesh.transform.scale += cloud_height*p_size;
         //mesh.transform.rotate = vcl::rotation(rotation_axis, cloud_rel_speed * t) * mesh.transform.rotate;
         mesh.transform.rotate = vcl::rotation(rotation_axis, 0);
         mesh.shading = cloud_shading;
@@ -170,10 +181,14 @@ struct Earth_Drawable : public Planete_Drawable{       //Il faudrait avoir un me
 };
 
 
-struct Sun_Drawable : public Planete_Drawable {
+struct Sun_Drawable : public Object_Drawable {
 
 
-    Sun_Drawable(mesh_drawable& d) :Planete_Drawable(d) {}
+    Sun_Drawable(mesh_drawable& d) :Object_Drawable(d) {}
+
+    virtual vcl::vec3 position(double t) { return { 0.0, 0.0, 0.0 }; }
+
+    virtual vcl::vec3 position(double t, vcl::vec3 parent_pos) { return { 0.0, 0.0, 0.0 }; }
 
     void virtual draw_obj(double t, scene_environment scene) {
 
@@ -209,6 +224,7 @@ struct Asteroid_Drawable : public Object_Drawable {
 
     void virtual draw_obj(double t, scene_environment scene) {
         setup_mesh(t);
+        mesh.transform.scale /= p_size;
         draw(mesh, scene, true);
 
            
@@ -223,6 +239,7 @@ struct Belt {
     vcl::vec3 center;  // position du parent
     vcl::vec3 axis; // normalisé à 1 (utiliser normalize())
     float radius_orbit;
+    float depth;
 
     vcl::vec3 diameter_ini; // arbitraire, aucune importance
     // penser à prendre la composante orthonormale à axis
@@ -241,7 +258,8 @@ struct Belt {
     float speed_rotation;
 
     // Paramètres physiques pour la modélisation de la ceinture d'astéroïdes
-    float sigma; //pour revenir vers l'anneau
+    float sigma1; //pour revenir vers l'anneau de loin
+    float sigma2; //pour revenir vers l'anneau de près
     float lambda; //pour homomgénéiser les vitesses
     float ka, D; // pour éviter les chocs
 
@@ -261,9 +279,15 @@ struct Belt {
             }
 
             vcl::vec3 projax = ei.pos - axis * vcl::dot(ei.pos, axis);
-            projax = projax / vcl::norm(projax) * radius_orbit;
+            float dst = vcl::norm(projax);
+            projax = projax / dst * radius_orbit;
             ei.speed += -(ei.speed - speed_rotation * vcl::normalize(vcl::cross(axis, ei.pos))) * dt * lambda / ei.mass;   //utheta au projeté vaut normalize(cross(axis, position))
-            ei.pos += ei.speed * dt - (ei.pos - projax) * dt * sigma / ei.mass;
+
+            float ellip = 800.0f;
+            if (ellip * std::pow(vcl::dot(ei.pos - projax, axis), 2) +  (radius_orbit - dst)*(radius_orbit - dst) > depth*depth) ei.pos += ei.speed * dt - (ei.pos - projax) * dt * sigma1 / ei.mass;
+            else ei.pos += ei.speed * dt - (ei.pos - projax) * dt * sigma2 / ei.mass;
+
+
 
             //print(elements[i].angle_projection, "rpoj");
         }

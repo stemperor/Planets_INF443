@@ -4,6 +4,7 @@
 #include <chrono>
 #include <string>
 #include <fstream>
+#include <queue>
 
 //#include "Simulator.h"
 #include "scene_initializer.hpp"
@@ -44,18 +45,37 @@ timer_event_periodic timer(0.6f);
 
 mesh_drawable sunbillboard;
 mesh_drawable pointer_billboard;
+mesh_drawable saturn_billboard;
 
 vcl::timer_basic frame_timer;
 vcl::timer_basic just_for_time;
 
 Object_Drawable* selected = nullptr;
+Object_Drawable* focused = nullptr;
+
+float avg_occ = -1;
+float occ_factor = 1.0f;
+std::queue<float> avg_occs;
+int avg_times = 10;
+
+float aspect;
+
+float near_field_min = 0.0101;
+float near_field_max = 0.07;
+float near_field_max_dist = 5000.0f;
 
 
 void switch_center_object(Object_Drawable* ob, double t) {
 
 	if (ob != selected) {
 		selected = ob;
-		scene.camera.set_distance_to_center(vcl::norm(scene.camera.position() - selected->position(t)));
+	}
+}
+
+void focus_on_selected(double t) {
+	if (selected != nullptr) {
+		focused = selected;
+		scene.camera.set_distance_to_center(vcl::norm(scene.camera.position() - focused->position(t)));
 	}
 }
 
@@ -68,6 +88,7 @@ int main(int, char* argv[])
 	int const width = 1280, height = 1024;
 	GLFWwindow* window = create_window(width, height);
 	window_size_callback(window, width, height);
+	aspect = (float)width / height;
 	std::cout << opengl_info_display() << std::endl;;
 
 	imgui_init(window);
@@ -91,6 +112,7 @@ int main(int, char* argv[])
 	glGenQueries(1, &queryid2);
 
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 	while (!glfwWindowShouldClose(window))
 	{
 
@@ -112,7 +134,7 @@ int main(int, char* argv[])
 		double dt = frame_timer.update();
 		mouvement_callback(window, dt);
 
-		belt.update_coord(dt);
+		belt.update_coord(dt/10);
 
 		just_for_time.update();
 		scene.camera.update(just_for_time.t, glfw_current_state(window));
@@ -146,13 +168,15 @@ void initialize_data()
 
 	// https://www.solarsystemscope.com/textures/
 
-	sunbillboard = mesh_drawable(mesh_primitive_grid({ -1.0, -1.0, 0 }, { -1.0, 1.0, 0 }, { 1.0, 1.0, 0 }, { 1.0, -1.0, 0 }, 2, 2));
-	pointer_billboard = mesh_drawable(mesh_primitive_grid({ -1, -1, 0 }, { -1, 1, 0 }, { 1, 1, 0 }, { 1, -1, 0 }, 2, 2));
+	sunbillboard = mesh_drawable(mesh_primitive_grid({ -2, -2, 0 }, { -2, 2, 0 }, { 2, 2, 0 }, { 2, -2, 0 }, 2, 2));
+	pointer_billboard = mesh_drawable(mesh_primitive_grid({ -1.0, -1.0, 0 }, { -1.0, 1.0, 0 }, { 1.0, 1.0, 0 }, { 1.0, -1.0, 0 }, 2, 2));
+	saturn_billboard = mesh_drawable(mesh_primitive_grid({ -1, 0, -1 }, { -1, 0, 1 }, { 1, 0, 1 }, {1, 0, -1}, 1, 1));
 
-	belt = create_belt((s.get_object("Sun")), 20, { 1, 0, 0 }, 30, 1, 1 , 1, 2, 0.5);
 
-	selected = belt.elements[0];
 
+	belt = create_belt((s.get_object("Sun")), 200000, { 1, 0, 0 }, 200, 10, 100 , 1, 2, 10);
+
+	focused = s.get_object("Sun");
 
 	for (auto ast : belt.elements) {
 
@@ -200,9 +224,9 @@ void display_frame()
 
 
 
-	if (selected != nullptr)
+	if (focused != nullptr)
 	{
-		scene.camera.set_center_of_rotation(selected->position(t));
+		scene.camera.set_center_of_rotation(focused->position(t), focused->radius_drawn());
 
 	}
 
@@ -211,33 +235,62 @@ void display_frame()
 	
 	s.draw(t, scene);
 
-	mesh_drawable tester = s.get_mesh("LQ Sphere");
+	mesh_drawable tester = s.get_mesh("LLQ Sphere");
 
 
 	sunbillboard.transform.rotate = vcl::inverse(vcl::rotation(mat3(scene.camera.matrix_view_or_only())));
 
-	sunbillboard.transform.scale = s.get_object("Sun")->radius*1.1;
-	//sunbillboard.transform.translate = -s.get_object("Sun")->radius * scene.camera.front();
+
+
+	sunbillboard.transform.scale = s.get_object("Sun")->radius;
+	sunbillboard.transform.translate = s.get_object("Sun")->radius * vcl::normalize(scene.camera.position());
 	sunbillboard.shader = s.get_shader("Simple Querry");
 	float occ = query_occlusion(sunbillboard, scene);
 
-	sunbillboard.shader = s.get_shader("Sun Billboard Shader");
-	sunbillboard.transform.scale = s.get_object("Sun")->radius * 4;
 
-	drawsunflares(sunbillboard, scene, t);
+	// Makeshift way to prevent unexplained occlusion testing flickering...: average over avg_times frames
+	if (avg_occs.size() < avg_times) {
+
+		avg_occ = avg_occ * avg_occs.size() / (avg_occs.size() + 1);
+	}
+	else {
+		avg_occ -= (avg_occs.front() - occ) / avg_times;
+		avg_occs.pop();
+	}
+
+	avg_occs.push(occ);
+	std::cout << norm(scene.camera.position()) << std::endl;
+
+	float dst = norm(scene.camera.position());
+
+	float sunrad = s.get_object("Sun")->radius_drawn();
+
+	occ = avg_occ;
+
+	// removes lens flare when properly seeing the sun - changing fov messes with the setting (for now)
+	if (dst < 15 * sunrad) {
+		occ *= std::max(0.0f, (dst - 5 * sunrad) / (15 * sunrad - 5 * sunrad));
+	}
+
+
+	sunbillboard.shader = s.get_shader("Sun Billboard Shader");
+	sunbillboard.transform.scale = s.get_object("Sun")->radius;
+
+	//drawsunflares(sunbillboard, scene, t);
 
 	sunbillboard.transform.translate = vcl::vec3();
 	sunbillboard.shader = s.get_shader("Sun Shine Shader");
-	sunbillboard.transform.scale = vcl::norm(scene.camera.position()) * 13;
+	sunbillboard.transform.scale = vcl::norm(scene.camera.position())/10 * 3;
 	sunbillboard.texture = s.get_texture("Sun Shine");
 
 
 
 	glBlendFunc(GL_ONE, GL_ONE);
 	glDisable(GL_DEPTH_TEST);
-	drawsunshine(sunbillboard, scene, scene.camera.front().z, occ*3);
+	drawsunshine(sunbillboard, scene, scene.camera.front().z, occ*occ_factor);
 	glEnable(GL_DEPTH_TEST);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 
 	if (selected != nullptr) {
 
@@ -284,16 +337,45 @@ void display_frame()
 
 void display_interface()
 {
+
+
 	ImGui::Checkbox("Frame", &user.gui.display_frame);
-	ImGui::SliderFloat("Scale", &timer.scale, 0.0f, 3.0f, "%.3f", 2.0f);
+	ImGui::SliderFloat("planet_size", &p_size, 1.0f, 10.0f, "%.3f", 4.0f);
+	ImGui::SliderFloat("sun brightness", &occ_factor, 0.0f, 1.0f, "%.3f", 1.0f);
+
+	if (selected != nullptr) {
+
+		if (selected->parent != nullptr) {
+			if (ImGui::Button(("<-- " + selected->parent->name).c_str())) {
+				selected = selected->parent;
+			}
+		}
+
+		ImGui::Button((selected->name).c_str());
+
+		for (auto child : selected->enfants){
+			if (child->name.substr(0, 3) != "ast" || child->name == "ast0") {
+				if (ImGui::Button(("\t" + child->name).c_str())) {
+					selected = child;
+
+				}
+
+			}
+		}
+
+
+	}
+
 }
 
 
 void window_size_callback(GLFWwindow* , int width, int height)
 {
 	glViewport(0, 0, width, height);
-	float const aspect = width / static_cast<float>(height);
-	scene.projection = projection_perspective(50.0f*pi/180.0f, aspect, 0.01f, 10000.0f);
+	float const aspect_ = width / static_cast<float>(height);
+
+	aspect = aspect_;
+	scene.projection = projection_perspective(50.0f*pi/180.0f, aspect, 0.05f, 20000.0f);
 }
 
 
@@ -322,6 +404,8 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
 void key_event_callback(GLFWwindow* window, int key, int scan_code, int action, int mod) {
 	glfw_state state = glfw_current_state(window);
 	Dual_camera& camera = scene.camera;
+	just_for_time.update();
+	float t = just_for_time.t;
 
 	switch (key) {
 
@@ -331,6 +415,10 @@ void key_event_callback(GLFWwindow* window, int key, int scan_code, int action, 
 
 	case GLFW_KEY_C:
 		if (action == GLFW_PRESS) camera.switch_to_centered();
+		break;
+	
+	case GLFW_KEY_G:
+		focus_on_selected(t);
 		break;
 
 	}
@@ -359,8 +447,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 			ypos = ((float)(height - ypos - 1) / height - 0.5) * 2;
 
 
-			std::cout << "xpos : " << xpos << " " << width << std::endl;
-			std::cout << "ypos : " << ypos << " " << height << std::endl;
 
 			float view_angle = 50.0f * pi / 180.0f /2; // SHOULD BE GLOBALLY ACCESSIBLE !!
 			float min_z = 0.01f; // GLOBAL TOO !
@@ -369,7 +455,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 
 
-			float good_angle = 5.0f * pi / 180.0f; // to be changed;
+			float good_angle = 1.0f * pi / 180.0f; // to be changed;
 			//good_angle = 0;
 
 			auto is_selected = s.closest_angle(vcl::normalize(ray), scene.camera.position(), t, good_angle);
@@ -410,4 +496,9 @@ void mouvement_callback(GLFWwindow* window, double dt) {
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)) {
 		scene.camera.translate_position(-scene.camera.up() * dt * speed);
 	}
+
+	float near_field = near_field_min + (near_field_max - near_field_min) * std::min(1.0f, norm(scene.camera.position()) / near_field_max_dist);
+	scene.projection = projection_perspective(50.0f * pi / 180.0f, aspect, near_field, 20000.0f);
+
+
 }

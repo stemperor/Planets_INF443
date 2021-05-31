@@ -23,7 +23,7 @@ public:
 
 	camera_mode getMode() { return mode; };
 
-	void set_center_of_rotation(vcl::vec3 cor);
+	void set_center_of_rotation(vcl::vec3 cor, float minrad);
 	void set_distance_to_center(double dtc);
 	void slide_distance_to_center(double dtc);
 	void look_at(vcl::vec3 eye, vcl::vec3 center, vcl::vec3 up);
@@ -36,6 +36,10 @@ public:
 
 	void update(double t, vcl::glfw_state state);
 
+	void set_min_rad(float mr) { 
+		min_rad = mr; 
+		centered_camera.distance_to_center = std::max(centered_camera.distance_to_center, mr * 1.1f);
+	}
 
 
 
@@ -51,6 +55,7 @@ private:
 
 	vcl::vec2 dp_trackball;
 
+	float min_rad = 0.0f;
 	float inertia = 1;
 	double last_inertia = 0;
 

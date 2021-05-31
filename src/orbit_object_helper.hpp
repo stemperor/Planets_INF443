@@ -20,22 +20,24 @@ perlin_noise_parameters parameters;
 
 
 
-
-
 vcl::mesh_drawable& create_ast_mesh(float radius) {
 
 
     vcl::mesh sphere = vcl::mesh_primitive_sphere(radius);
 
     int N = sphere.position.size();
+    float rand_parameter = vcl::rand_interval(0, 1); 
+    std::cout  << "rp "  << rand_parameter << std::endl;
 
     for (int k = 0; k < N; k++) {
+
+
         vcl::vec3 n0 = vcl::normalize(sphere.position[k]);
         vcl::vec3 n = (n0 + vcl::vec3(1, 1, 1)) / 2;
 
-        float const noiseX = noise_perlin({ pow(n.y,2), pow(n.z,2) }, parameters.octave, parameters.persistency, parameters.frequency_gain);
-        float const noiseY = noise_perlin({ pow(n.x,2), pow(n.z,2) }, parameters.octave, parameters.persistency, parameters.frequency_gain);
-        float const noiseZ = noise_perlin({ pow(n.x,2), pow(n.y,2) }, parameters.octave, parameters.persistency, parameters.frequency_gain);
+        float const noiseX = noise_perlin({ pow(n.y + rand_parameter,2), pow(n.z + rand_parameter,2), rand_parameter }, parameters.octave, parameters.persistency, parameters.frequency_gain);
+        float const noiseY = noise_perlin({ pow(n.x + rand_parameter,2), pow(n.z + rand_parameter,2), rand_parameter }, parameters.octave, parameters.persistency, parameters.frequency_gain);
+        float const noiseZ = noise_perlin({ pow(n.x + rand_parameter,2), pow(n.y + rand_parameter,2), rand_parameter }, parameters.octave, parameters.persistency, parameters.frequency_gain);
 
         float const noise = (noiseX + noiseY + noiseZ) / 3;
 
@@ -48,7 +50,7 @@ vcl::mesh_drawable& create_ast_mesh(float radius) {
 
     Scene_initializer s = Scene_initializer::getInstance();
 
-    s.add_mesh(m, "asteroid_"+ std::to_string(num_ast_mesh));
+    s.add_mesh(m, "asteroid_" + std::to_string(num_ast_mesh));
 
     num_ast_mesh += 1;
 
@@ -76,10 +78,11 @@ vcl::vec3 generate_rand_position(float R, float depth, vcl::vec3 Ex, vcl::vec3 E
     std::normal_distribution<float> distribution1(R, depth);
     float rad = distribution1(generator);
     float phi = vcl::rand_interval(0, 2 * 3.14);
-    std::normal_distribution<float> distribution2(0, depth / R);
-    float theta = distribution2(generator);
 
-    p = rad * std::sin(theta) * std::cos(phi) * Ex + rad * std::sin(theta) * std::sin(phi) * vcl::cross(Ez, Ex) + rad * std::cos(theta) * Ez;
+    std::normal_distribution<float> distribution2(0, depth / R);
+    float theta = distribution2(generator) + vcl::pi/2;
+
+    p = rad * std::sin(phi) * std::cos(phi) * Ex + rad * std::sin(theta) * std::sin(phi) * vcl::cross(Ez, Ex) + rad * std::cos(theta) * Ez;
     return p;
 }
 
@@ -114,26 +117,23 @@ Belt create_belt(Object_Drawable* parent, float parentmass, vcl::vec3 ax, float 
     else ceinture.diameter_ini = vcl::normalize(vcl::cross(ceinture.axis, { 1.0f,0.0f,0.0f }));
 
     // Paramètres à optimiser ici
-    ceinture.sigma = 10.0f;
-    ceinture.lambda = 1.0f;
-    ceinture.ka = 1.0f;
+    ceinture.sigma1 = 5.0f;
+    ceinture.sigma2 = ceinture.sigma1 / 10.0f;
+    ceinture.lambda = 0.01f;
+    ceinture.ka = 50000.0f;
+    ceinture.depth = depth;
 
     // Paramètre à optimiser en fonction du rayon des astéroïdes
-    ceinture.D = 1.7 * parameters.terrain_height * radius_ast;
+    ceinture.D = 2 * parameters.terrain_height * radius_ast;
 
     ceinture.speed_rotation = 2 * 3.14 * ceinture.radius_orbit / ceinture.period;
-
-    print(ceinture.speed_rotation, "speed rot");
-    print(ceinture.radius_orbit, "rad");
-    print(ceinture.period, "perdiod");
-    print(G, "G");
 
     for (unsigned int i = 0; i < N; i++) {
         vcl::vec3 p;
         bool b = true;
         while (b) {
             p = generate_rand_position(R, depth, ceinture.diameter_ini, ceinture.axis);
-            std::cout << p << std::endl;
+            //std::cout << "fsef q" <<  p << std::endl;
             b = false;
             for (unsigned int j = 0; j < ceinture.elements.size(); j++) {
                 if (vcl::norm(ceinture.elements[j]->pos - p) < 3 * radius_ast)
