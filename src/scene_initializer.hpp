@@ -63,46 +63,30 @@ public:
 private:
     Scene_initializer() {
 
-        std::ifstream t(".\\src\\shaders\\skyboxshader.frag.glsl");
-        std::stringstream buffer;
-        buffer << t.rdbuf();
+        std::string base = ".\\src\\shaders\\";
 
-
-        std::ifstream t2(".\\src\\shaders\\test.frag.glsl");
-        std::stringstream buffer2;
-        buffer2 << t2.rdbuf();
-
-        std::ifstream t3(".\\src\\shaders\\sunshader.frag.glsl");
-        std::stringstream buffer3;
-        buffer3 << t3.rdbuf();
-
-        std::ifstream t4(".\\src\\shaders\\sunbillboard.frag.glsl");
-        std::stringstream buffer4;
-        buffer4 << t4.rdbuf();
-
-        std::ifstream t5(".\\src\\shaders\\sunbillboard.vert.glsl");
-        std::stringstream buffer5;
-        buffer5 << t5.rdbuf();
-
-        std::ifstream t6(".\\src\\shaders\\sunshine.frag.glsl");
-        std::stringstream buffer6;
-        buffer6 << t6.rdbuf();
-
-        std::ifstream t7(".\\src\\shaders\\pointer.frag.glsl");
-        std::stringstream buffer7;
-        buffer7 << t7.rdbuf();
+        std::string sky_shader_frag = read_file(base + "skyboxshader.frag.glsl");
+        std::string earth_shader_frag = read_file(base + "earth.frag.glsl");
+        std::string sun_shader_frag = read_file(base + "sunshader.frag.glsl");
+        std::string sunbill_shader_frag = read_file(base + "sunbillboard.frag.glsl");
+        std::string sunbill_shader_vert = read_file(base + "sunbillboard.vert.glsl");
+        std::string sunshine_shader_frag = read_file(base + "sunshine.frag.glsl");
+        std::string pointer_shader_frag = read_file(base + "pointer.frag.glsl");
+        std::string satring_shader_frag = read_file(base + "saturnring.frag.glsl");
 
 
         std::string base_path = ".\\src\\assets\\";
 
         shaders["Mesh Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), vcl::opengl_shader_preset("mesh_fragment"));
-        shaders["Earth Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), buffer2.str());
-        shaders["Skybox Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), buffer.str());
-        shaders["Sun Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), buffer3.str());
-        shaders["Sun Billboard Shader"] = vcl::opengl_create_shader_program(buffer5.str(), buffer4.str());
-        shaders["Sun Shine Shader"] = vcl::opengl_create_shader_program(buffer5.str(), buffer6.str());
+        shaders["Earth Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), earth_shader_frag);
+        shaders["Skybox Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), sky_shader_frag);
+        shaders["Sun Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), sun_shader_frag);
+        shaders["Sun Billboard Shader"] = vcl::opengl_create_shader_program(sunbill_shader_vert, sunbill_shader_frag);
+        shaders["Sun Shine Shader"] = vcl::opengl_create_shader_program(sunbill_shader_vert, sunshine_shader_frag);
         shaders["Simple Querry"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("single_color_vertex"), vcl::opengl_shader_preset("single_color_fragment"));
-        shaders["Pointer Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), buffer7.str());
+        shaders["Pointer Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), pointer_shader_frag);
+        shaders["Satring Shader"] = vcl::opengl_create_shader_program(sunbill_shader_vert, satring_shader_frag);
+
 
         vcl::mesh_drawable::default_shader = shaders["Mesh Shader"];
         vcl::mesh_drawable::default_texture = vcl::opengl_texture_to_gpu(vcl::image_raw{ 1,1,vcl::image_color_type::rgba,{255,255,255,255} });
@@ -304,6 +288,13 @@ private:
         }
 
         delete d;
+    }
+
+    std::string read_file(std::string path) {
+        std::ifstream t(path);
+        std::stringstream buffer;
+        buffer << t.rdbuf();
+        return buffer.str();
     }
 
 

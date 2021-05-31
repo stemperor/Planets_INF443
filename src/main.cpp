@@ -76,6 +76,7 @@ void focus_on_selected(double t) {
 	if (selected != nullptr) {
 		focused = selected;
 		scene.camera.set_distance_to_center(vcl::norm(scene.camera.position() - focused->position(t)));
+		scene.camera.look_at(scene.camera.position(), focused->position(t), scene.camera.up());
 	}
 }
 
@@ -170,13 +171,15 @@ void initialize_data()
 
 	sunbillboard = mesh_drawable(mesh_primitive_grid({ -2, -2, 0 }, { -2, 2, 0 }, { 2, 2, 0 }, { 2, -2, 0 }, 2, 2));
 	pointer_billboard = mesh_drawable(mesh_primitive_grid({ -1.0, -1.0, 0 }, { -1.0, 1.0, 0 }, { 1.0, 1.0, 0 }, { 1.0, -1.0, 0 }, 2, 2));
-	saturn_billboard = mesh_drawable(mesh_primitive_grid({ -1, 0, -1 }, { -1, 0, 1 }, { 1, 0, 1 }, {1, 0, -1}, 1, 1));
+	saturn_billboard = mesh_drawable(mesh_primitive_grid({ -1, 0, -1 }, { -1, 0, 1 }, { 1, 0, 1 }, {1, 0, -1}, 2, 2));
 
+	saturn_billboard.texture = s.get_texture("Saturn Rings");
+	saturn_billboard.shader = s.get_shader("Satring Shader");
 
 
 	belt = create_belt((s.get_object("Sun")), 200000, { 1, 0, 0 }, 200, 10, 100 , 1, 2, 10);
 
-	focused = s.get_object("Sun");
+	focused = s.get_object("Saturn");
 
 	for (auto ast : belt.elements) {
 
@@ -230,14 +233,20 @@ void display_frame()
 
 	}
 
-	//scene.camera.set_center_of_rotation(s.get_object("Earth")->position(t));
 
 	
 	s.draw(t, scene);
 
-	mesh_drawable tester = s.get_mesh("LLQ Sphere");
+	vec3 satpos = s.get_object("Saturn")->position(t);
+	float satrad = s.get_object("Saturn")->radius_drawn();
+
+	saturn_billboard.transform.translate = satpos;
+	saturn_billboard.transform.scale = satrad * 2.2;
+
+	drawsatring(saturn_billboard, scene, satrad, satpos);
 
 
+	// Applied to all billboard that must follow the camera
 	sunbillboard.transform.rotate = vcl::inverse(vcl::rotation(mat3(scene.camera.matrix_view_or_only())));
 
 

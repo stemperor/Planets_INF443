@@ -234,5 +234,34 @@ float query_occlusion(mesh_drawable const& drawable, SCENE const& scene)
 }
 
 
+template <typename SCENE>
+void drawsatring(mesh_drawable const& drawable, SCENE const& scene, double satrad, vcl::vec3 satpos)
+{
+	// Setup shader
+	assert_vcl(drawable.shader != 0, "Try to draw mesh_drawable without shader");
+	glUseProgram(drawable.shader); opengl_check;
+
+	// Send uniforms for this shader
+	opengl_uniform(drawable.shader, scene);
+	opengl_uniform(drawable.shader, "model", drawable.transform.matrix());
+	opengl_uniform(drawable.shader, "sat_radius", (float)satrad, false);
+	opengl_uniform(drawable.shader, "sat_pos", satpos);
+
+
+	glActiveTexture(GL_TEXTURE0); opengl_check;
+	glBindTexture(GL_TEXTURE_2D, drawable.texture); opengl_check;
+	opengl_uniform(drawable.shader, "image_texture", 0);  opengl_check;
+
+	// Call draw function
+	assert_vcl(drawable.number_triangles > 0, "Try to draw mesh_drawable with 0 triangles"); opengl_check;
+	glBindVertexArray(drawable.vao);   opengl_check;
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, drawable.vbo.at("index")); opengl_check;
+	glDrawElements(GL_TRIANGLES, GLsizei(drawable.number_triangles * 3), GL_UNSIGNED_INT, nullptr); opengl_check;
+
+	// Clean buffers
+	glBindVertexArray(0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 #endif // DRAW_HELPER_H
 

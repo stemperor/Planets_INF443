@@ -93,7 +93,8 @@ struct Object_Drawable {
         mesh.shader = shader;
         mesh.shading = shading;
 
-        mesh.transform.rotate = vcl::rotation(rotation_axis, rotation_angle(t));
+        mesh.transform.rotate = vcl::rotation({ 0, 0, 1 }, vcl::pi / 2);
+        mesh.transform.rotate = vcl::rotation(rotation_axis, rotation_angle(t)) * mesh.transform.rotate;
         mesh.transform.translate = position(t);
 
         mesh.transform.scale = radius*p_size;
