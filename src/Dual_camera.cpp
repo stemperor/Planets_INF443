@@ -40,10 +40,15 @@ void Dual_camera::set_center_of_rotation(vcl::vec3 cor)
 	centered_camera.center_of_rotation = cor;
 }
 
-void Dual_camera::set_distance_to_center(double dtc)
+void Dual_camera::slide_distance_to_center(double dtc)
 {
 	if (mode == camera_mode::CENTERED)
 		centered_camera.manipulator_scale_distance_to_center(dtc);
+}
+
+void Dual_camera::set_distance_to_center(double dtc)
+{
+	centered_camera.distance_to_center = dtc;
 }
 
 void Dual_camera::look_at(vcl::vec3 eye, vcl::vec3 center, vcl::vec3 up)
@@ -95,6 +100,6 @@ void Dual_camera::update(double t, vcl::glfw_state state)
 			manipulator_rotate_trackball({ 0.0f, 0.0f }, dp_trackball, t);
 	}
 
-	
+
 }
 

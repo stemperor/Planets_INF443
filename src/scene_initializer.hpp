@@ -1,3 +1,6 @@
+#ifndef SCENE_INIT_H
+#define SCENE_INIT_H
+
 #include "orbit_object.h"
 #include <vector>
 #include <map>
@@ -15,7 +18,7 @@ public:
         return instance;
     }
 
-    Planete_Drawable* get_object(std::string name) {
+    Object_Drawable* get_object(std::string name) {
         return get_object_rec_(name, parent);
     }
 
@@ -31,11 +34,15 @@ public:
         return *meshes[name];
     }
 
-    Planete_Drawable* closest_object(vcl::vec3 pos, double t) {
+    void add_mesh(vcl::mesh_drawable* m, std::string name) {
+        meshes[name] = m;
+    }
+
+    Object_Drawable* closest_object(vcl::vec3 pos, double t) {
         return closest_object_rec(pos, parent, t);
     }
 
-    Planete_Drawable* closest_angle(vcl::vec3 ray, vcl::vec3 c_pos, double t, float angle_select) {
+    Object_Drawable* closest_angle(vcl::vec3 ray, vcl::vec3 c_pos, double t, float angle_select) {
 
         float dst;
         return closest_angle_rec(ray, c_pos, parent, t, angle_select, dst);
@@ -43,6 +50,10 @@ public:
 
     void draw(double t, scene_environment scene) {
         draw_rec_(t, scene, parent);
+    }
+
+    void kill_initializer() {
+        delete_rec(parent);
     }
 
 private:
@@ -73,6 +84,11 @@ private:
         std::stringstream buffer6;
         buffer6 << t6.rdbuf();
 
+        std::ifstream t7(".\\src\\shaders\\pointer.frag.glsl");
+        std::stringstream buffer7;
+        buffer7 << t7.rdbuf();
+
+
         shaders["Mesh Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), vcl::opengl_shader_preset("mesh_fragment"));
         shaders["Earth Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), buffer2.str());
         shaders["Skybox Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), buffer.str());
@@ -80,40 +96,45 @@ private:
         shaders["Sun Billboard Shader"] = vcl::opengl_create_shader_program(buffer5.str(), buffer4.str());
         shaders["Sun Shine Shader"] = vcl::opengl_create_shader_program(buffer5.str(), buffer6.str());
         shaders["Simple Querry"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("single_color_vertex"), vcl::opengl_shader_preset("single_color_fragment"));
+        shaders["Pointer Shader"] = vcl::opengl_create_shader_program(vcl::opengl_shader_preset("mesh_vertex"), buffer7.str());
 
         vcl::mesh_drawable::default_shader = shaders["Mesh Shader"];
         vcl::mesh_drawable::default_texture = vcl::opengl_texture_to_gpu(vcl::image_raw{ 1,1,vcl::image_color_type::rgba,{255,255,255,255} });
 
-        /*vcl::image_raw const im_earth_night = vcl::image_load_png(".\\src\\assets\\8k_earth_nightmap2.png");
-        vcl::image_raw const im_earth = vcl::image_load_png(".\\src\\assets\\8k_earth_daymap.png");*/
-        vcl::image_raw const im_sun = vcl::image_load_png(".\\src\\assets\\2k_sun.png");
+        vcl::image_raw const im_earth_night = vcl::image_load_png(".\\src\\assets\\8k_earth_nightmap2.png");
+        vcl::image_raw const im_earth = vcl::image_load_png(".\\src\\assets\\8k_earth_daymap.png");
         vcl::image_raw const im_stars = vcl::image_load_png(".\\src\\assets\\8k_stars_milky_way.png");
 
-        /*vcl::image_raw const im_moon = vcl::image_load_png(".\\src\\assets\\2k_moon.png");
+        vcl::image_raw const im_moon = vcl::image_load_png(".\\src\\assets\\2k_moon.png");
+        vcl::image_raw const im_mars = vcl::image_load_png(".\\src\\assets\\2k_mars.png");
 
 
-        vcl::image_raw const im_earth_spec = vcl::image_load_png(".\\src\\assets\\8k_earth_specular_map.png");
+        vcl::image_raw const im_earth_spec = vcl::image_load_png(".\\src\\assets\\2k_earth_specular_map.png");
         vcl::image_raw const im_earth_norm = vcl::image_load_png(".\\src\\assets\\8k_earth_normal_map.png");
-        vcl::image_raw const im_earth_clouds = vcl::image_load_png(".\\src\\assets\\8k_earth_clouds2.png");*/
+        vcl::image_raw const im_earth_clouds = vcl::image_load_png(".\\src\\assets\\2k_earth_clouds2.png");
 
         vcl::image_raw const im_sun_shine = vcl::image_load_png(".\\src\\assets\\star_glow.png");
 
+        vcl::image_raw const pointer = vcl::image_load_png(".\\src\\assets\\marker.png");
+
         // Send this image to the GPU, and get its identifier texture_image_id
-        /*textures["Earth Night"] = opengl_texture_to_gpu(im_earth_night, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-        textures["Earth Day"] = opengl_texture_to_gpu(im_earth, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);*/
-        textures["Sun"] = opengl_texture_to_gpu(im_sun, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+        textures["Earth Night"] = opengl_texture_to_gpu(im_earth_night, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+        textures["Earth Day"] = opengl_texture_to_gpu(im_earth, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
         textures["Stars"] = opengl_texture_to_gpu(im_stars, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 
-        /*textures["Earth Specular"] = opengl_texture_to_gpu(im_earth_spec, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+        textures["Earth Specular"] = opengl_texture_to_gpu(im_earth_spec, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
         textures["Earth Norm"] = opengl_texture_to_gpu(im_earth_norm, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
         textures["Earth Clouds"] = opengl_texture_to_gpu(im_earth_clouds, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
-        textures["Moon"] = opengl_texture_to_gpu(im_moon, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);*/
+        textures["Moon"] = opengl_texture_to_gpu(im_moon, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
+        textures["Mars"] = opengl_texture_to_gpu(im_mars, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 
         textures["Sun Shine"] = opengl_texture_to_gpu(im_sun_shine, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 
+        textures["Pointer"] = opengl_texture_to_gpu(pointer, GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE);
 
 
-        float const r = 0.05f; // TO BE CHANGED
+
+        float const r = 1.0f; // TO BE CHANGED
         
         meshes["LQ Sphere"] = new vcl::mesh_drawable(vcl::mesh_primitive_sphere(r, { 0, 0, 0 }, 60, 40));
         meshes["HQ Sphere"] = new vcl::mesh_drawable(vcl::mesh_primitive_sphere(r, { 0, 0, 0 }, 100, 100));
@@ -131,7 +152,7 @@ private:
 
         // Initialize Earth
 
-       /* Earth_Drawable* Earth = new Earth_Drawable(get_mesh("HQ Sphere"));
+        Earth_Drawable* Earth = new Earth_Drawable(get_mesh("HQ Sphere"), { 70.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
         parent->enfants.push_back(Earth);
 
         Earth->parent = parent;
@@ -146,7 +167,6 @@ private:
         Earth->name = "Earth";
         Earth->rotation_speed = 0.0;
         Earth->shader = shaders["Earth Shader"];
-        Earth->planete = new Orbit_Object();
         Earth->planete->mass = 1;
         Earth->cloud_shader = shaders["Mesh Shader"];
 
@@ -159,9 +179,8 @@ private:
         Earth->cloud_shading.phong.specular_exponent = 3.0;
         Earth->cloud_shading.phong.ambient = 0.0f;
         Earth->cloud_shading.phong.diffuse = 1.0f;
-        init_orbit_circ(*(Earth->planete), sun_mass, { 70.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f });
 
-        Planete_Drawable* moon = new Planete_Drawable(get_mesh("LQ Sphere"));
+        Planete_Drawable* moon = new Planete_Drawable(get_mesh("LQ Sphere"), { 2.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, Earth->planete->mass);
         Earth->enfants.push_back(moon);
 
         moon->parent = Earth;
@@ -169,21 +188,28 @@ private:
         moon->radius = 0.8;
         moon->rotation_speed = 0.0;
         moon->shader = shaders["Mesh Shader"];
-        moon->planete = new Orbit_Object();
         moon->planete->mass = 0.5;
         moon->texture = textures["Moon"];
 
-        moon->shading.phong.specular = 0.0f;
-        moon->shading.phong.specular_exponent = 3.0;
-        moon->shading.phong.ambient = 0.0f;
-        moon->shading.phong.diffuse = 0.8f;
 
-        init_orbit_circ(*(moon->planete), Earth->planete->mass, { 2.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f });*/
+        Planete_Drawable* mars = new Planete_Drawable(get_mesh("LQ Sphere"), { 120.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
+        parent->enfants.push_back(mars);
+
+        mars->parent = parent;
+        mars->name = "Mars";
+        mars->radius = 4.0;
+        mars->rotation_speed = 0.0;
+        mars->shader = shaders["Mesh Shader"];
+        mars->planete->mass = 1;
+        mars->texture = textures["Mars"];
+
+
+
 
     }
 
     // Complexité carastrophique, à refaire
-    Planete_Drawable* closest_object_rec(vcl::vec3 pos, Planete_Drawable* p, double t) { 
+    Object_Drawable* closest_object_rec(vcl::vec3 pos, Object_Drawable* p, double t) {
         float mindist = vcl::norm(pos - p->position(t));
         auto minp = p;
 
@@ -199,13 +225,27 @@ private:
         return minp;
     }
 
-    Planete_Drawable* closest_angle_rec(vcl::vec3 ray, vcl::vec3 c_pos, Planete_Drawable* p, double t, float angle_select, float& dist_return) {
+
+
+    void delete_rec(Object_Drawable* d) {
+        for (auto c : d->enfants) {
+            delete_rec(c);
+        }
+
+        delete d;
+    }
+
+
+    Object_Drawable* closest_angle_rec(vcl::vec3 ray, vcl::vec3 c_pos, Object_Drawable* p, double t, float angle_select, float& dist_return) {
         vcl::vec3 rel_pos = p->position(t) - c_pos;
         double dist = vcl::norm(rel_pos);
         float angle = std::acos(vcl::dot(rel_pos, ray) / dist);
-        float angle_min = std::acos(p->radius / dist);
+        float angle_min = std::atan(p->radius * 1.3/ dist);
 
-        Planete_Drawable* best = nullptr;
+        std::cout << "angle " << p->name << " " << angle << std::endl;
+        std::cout << "angle_min " << angle_min << std::endl;
+
+        Object_Drawable* best = nullptr;
 
         if (angle < std::max(angle_min, angle_select)) {
             best = p;
@@ -229,7 +269,7 @@ private:
         return best;
     }
 
-    Planete_Drawable* get_object_rec_(std::string name, Planete_Drawable * start) {
+    Object_Drawable* get_object_rec_(std::string name, Object_Drawable* start) {
         if (start->name == name)
             return start;
 
@@ -242,14 +282,15 @@ private:
         return nullptr;
     }
 
-    void draw_rec_(double t, scene_environment scene, Planete_Drawable* p) {
+    void draw_rec_(double t, scene_environment scene, Object_Drawable* p) {
+        std::cout << p->name << std::endl;
         p->draw_obj(t, scene);
 
         for (auto child : p->enfants)
             draw_rec_(t, scene, child);
     }
 
-    Planete_Drawable* parent;
+    Object_Drawable* parent;
     std::map<std::string, GLuint> textures;
     std::map<std::string, GLuint> shaders;
     std::map<std::string, vcl::mesh_drawable*> meshes;
@@ -260,3 +301,5 @@ private:
 public:
     void operator=(Scene_initializer const&) = delete;
 };
+
+#endif

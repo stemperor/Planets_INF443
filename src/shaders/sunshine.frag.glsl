@@ -62,6 +62,10 @@ void main()
 	vec2 uv_image = vec2(1.0-fragment.uv.y, fragment.uv.x); 
 
 	vec3 color = texture(image_texture, uv_image).rgb + spikeBrightness;
+	
+	if (sun_occlusion > 1){
+		sun_occlusion = 1.0f/ sun_occlusion;
+	}
 	FragColor = vec4(color, 1.0)*sun_occlusion;
 }
 

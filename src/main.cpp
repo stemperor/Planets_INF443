@@ -7,6 +7,7 @@
 
 //#include "Simulator.h"
 #include "scene_initializer.hpp"
+#include "orbit_object_helper.hpp"
 
 using namespace vcl;
 
@@ -42,11 +43,21 @@ void cleanup();
 timer_event_periodic timer(0.6f);
 
 mesh_drawable sunbillboard;
+mesh_drawable pointer_billboard;
 
 vcl::timer_basic frame_timer;
 vcl::timer_basic just_for_time;
 
-Planete_Drawable* selected = nullptr;
+Object_Drawable* selected = nullptr;
+
+
+void switch_center_object(Object_Drawable* ob, double t) {
+
+	if (ob != selected) {
+		selected = ob;
+		scene.camera.set_distance_to_center(vcl::norm(scene.camera.position() - selected->position(t)));
+	}
+}
 
 Belt belt;
 
@@ -135,15 +146,30 @@ void initialize_data()
 
 	// https://www.solarsystemscope.com/textures/
 
-	sunbillboard = mesh_drawable(mesh_primitive_grid({ -0.05, -0.05, 0 }, { -0.05, 0.05, 0 }, { 0.05, 0.05, 0 }, { 0.05, -0.05, 0 }, 2, 2));
+	sunbillboard = mesh_drawable(mesh_primitive_grid({ -1.0, -1.0, 0 }, { -1.0, 1.0, 0 }, { 1.0, 1.0, 0 }, { 1.0, -1.0, 0 }, 2, 2));
+	pointer_billboard = mesh_drawable(mesh_primitive_grid({ -1, -1, 0 }, { -1, 1, 0 }, { 1, 1, 0 }, { 1, -1, 0 }, 2, 2));
 
-	belt = create_belt(*(s.get_object("Sun")), { 1, 0, 0 }, 10, 1, 100, 1, 0.20, 0.5);
+	belt = create_belt((s.get_object("Sun")), 20, { 1, 0, 0 }, 30, 1, 1 , 1, 2, 0.5);
+
+	selected = belt.elements[0];
+
+
+	for (auto ast : belt.elements) {
+
+		ast->shader = s.get_shader("Mesh Shader");
+		ast->texture = s.get_texture("Moon");
+		ast->shading.phong.specular = 0.0f;
+		ast->shading.phong.diffuse = 0.8f;
+
+	}
+
 
 
 }
 
 void cleanup() {
-
+	Scene_initializer s = Scene_initializer::getInstance();
+	s.kill_initializer();
 }
 
 
@@ -174,34 +200,14 @@ void display_frame()
 
 
 
-	for (auto ast : belt.elements) {
+	if (selected != nullptr)
+	{
+		scene.camera.set_center_of_rotation(selected->position(t));
 
-		mesh_drawable x = ast.apparence;
-		//auto x = s.get_mesh("LQ Sphere");
-
-		x.shader = s.get_shader("Simple Querry");
-		x.shading.color = { 1, 0 ,0 };
-
-		x.transform.translate = ast.position;
-
-		glUseProgram(x.shader); opengl_check;
-
-		// Send uniforms for this shader
-		opengl_uniform(x.shader, scene);
-		opengl_uniform(x.shader, "model", x.transform.matrix(), false);
-
-		glBindVertexArray(x.vao);   opengl_check;
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, x.vbo.at("index")); opengl_check;
-		glDrawElements(GL_TRIANGLES, GLsizei(x.number_triangles * 3), GL_UNSIGNED_INT, nullptr); opengl_check;
-
-		// Clean buffers
-		glBindVertexArray(0);
 	}
 
+	//scene.camera.set_center_of_rotation(s.get_object("Earth")->position(t));
 
-	//scene.camera.set_center_of_rotation(s.get_object("Sun")->position(t));
-
-	scene.camera.set_center_of_rotation(belt.elements[0].position);
 	
 	s.draw(t, scene);
 
@@ -233,14 +239,45 @@ void display_frame()
 	glEnable(GL_DEPTH_TEST);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	// Display particles
-    /*for(particle_structure& particle : particles)
-    {
-        sphere.transform.translate = particle.p;
-        draw(sphere, scene);
-    }*/
+	if (selected != nullptr) {
 
-	
+		pointer_billboard.transform.rotate = sunbillboard.transform.rotate;
+		pointer_billboard.texture = s.get_texture("Pointer");
+		pointer_billboard.shader = s.get_shader("Pointer Shader");
+
+		vec3 p = selected->position(t);
+		float r = selected->radius;
+		float dst = vcl::norm(scene.camera.position() - p);
+		vec3 normto = (p - scene.camera.position()) / dst;
+
+		float size = std::max(std::tan(0.7f * pi / 180.0f) * dst, 0.0f);
+
+		pointer_billboard.transform.scale = size;
+
+		float move = r + 10 * size / 3;
+
+		glDisable(GL_DEPTH_TEST);
+
+		pointer_billboard.transform.translate = p + scene.camera.up()*move;
+		pointer_billboard.transform.rotate = vcl::rotation(normto, pi / 2) * pointer_billboard.transform.rotate;
+		draw(pointer_billboard, scene, false);
+
+		pointer_billboard.transform.translate = p + scene.camera.right() * move;
+		pointer_billboard.transform.rotate = vcl::rotation(normto, pi / 2) * pointer_billboard.transform.rotate;
+		draw(pointer_billboard, scene, false);
+
+		pointer_billboard.transform.translate = p - scene.camera.up() * move;
+		pointer_billboard.transform.rotate = vcl::rotation(normto, pi / 2) * pointer_billboard.transform.rotate;
+		draw(pointer_billboard, scene, false);
+
+		pointer_billboard.transform.translate = p - scene.camera.right() * move;
+		pointer_billboard.transform.rotate = vcl::rotation(normto, pi / 2) * pointer_billboard.transform.rotate;
+		draw(pointer_billboard, scene, false);
+
+		glEnable(GL_DEPTH_TEST);
+
+	}
+
 
 }
 
@@ -274,7 +311,7 @@ void mouse_move_callback(GLFWwindow* window, double xpos, double ypos)
 			scene.camera.manipulator_rotate_trackball(p0, p1, just_for_time.t);
 		if (state.mouse_click_right)
 			if (camera.getMode() == camera_mode::CENTERED)
-				camera.set_distance_to_center((p1 - p0).y);
+				camera.slide_distance_to_center((p1 - p0).y);
 	}
 
 
@@ -305,6 +342,10 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	glfw_state state = glfw_current_state(window);
 	Scene_initializer s = Scene_initializer::getInstance();
 
+	float const dt = just_for_time.update();
+	double t = just_for_time.t / 2;
+
+
 	if (!user.cursor_on_gui) {
 		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && state.key_ctrl) {
 			double xpos, ypos;
@@ -312,18 +353,30 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 			int width, height;
 			glfwGetWindowSize(window, &width, &height);
 
-	
-			xpos = (xpos / width - 0.5)*2;
+
+
+			xpos = (xpos / height - 0.5*width/height)*2;
 			ypos = ((float)(height - ypos - 1) / height - 0.5) * 2;
 
-			float view_angle = 50.0f * pi / 180.0f; // MUST BE GLOBALLY ACCESSIBLE !!
+
+			std::cout << "xpos : " << xpos << " " << width << std::endl;
+			std::cout << "ypos : " << ypos << " " << height << std::endl;
+
+			float view_angle = 50.0f * pi / 180.0f /2; // SHOULD BE GLOBALLY ACCESSIBLE !!
 			float min_z = 0.01f; // GLOBAL TOO !
 
-			vec3 ray = scene.camera.front() + std::tan(view_angle) * min_z * (xpos * scene.camera.right() + ypos * scene.camera.up());
+			vec3 ray = scene.camera.front() + std::tan(view_angle) * (xpos * scene.camera.right() + ypos * scene.camera.up());
+
+
 
 			float good_angle = 5.0f * pi / 180.0f; // to be changed;
+			//good_angle = 0;
 
-			//Planete_Drawable* selected = s.closest_angle(ray);
+			auto is_selected = s.closest_angle(vcl::normalize(ray), scene.camera.position(), t, good_angle);
+
+			if (is_selected != nullptr) {
+				switch_center_object(is_selected, t);
+			}
 
 		}
 	}
