@@ -8,6 +8,13 @@
 #include <fstream>
 
 
+
+/* This object manages most of the initialisation and storage
+* 
+* For optimal access and (probably not needed for a project like this) uniqueness, it is a singleton class which can be accessed/created through the static function getInstance()
+* When it is first created, its constructor is called and creates all necessery objects
+*/
+
 class Scene_initializer
 {
 public:
@@ -38,16 +45,19 @@ public:
         meshes[name] = m;
     }
 
+    // Finds closest object to position
     Object_Drawable* closest_object(vcl::vec3 pos, double t) {
         return closest_object_rec(pos, parent, t);
     }
 
+    // See the mouse click callback in main.cpp
     Object_Drawable* closest_angle(vcl::vec3 ray, vcl::vec3 c_pos, double t, float angle_select) {
 
         float dst;
         return closest_angle_rec(ray, c_pos, parent, t, angle_select, dst);
     }
 
+    // Draws the objects, with their respective virtual draw functions
     void draw(double t, scene_environment scene) {
         draw_rec_(t, scene, parent);
     }
@@ -62,6 +72,8 @@ public:
 
 private:
     Scene_initializer() {
+
+        // Shaders for all objects
 
         std::string base = ".\\src\\shaders\\";
 
@@ -92,7 +104,7 @@ private:
         vcl::mesh_drawable::default_texture = vcl::opengl_texture_to_gpu(vcl::image_raw{ 1,1,vcl::image_color_type::rgba,{255,255,255,255} });
 
 
-        // Send this image to the GPU, and get its identifier texture_image_id
+        // Textures for all objects
 
         load_texture(base_path + "8k_earth_nightmap2.png", "Earth Night");
         load_texture(base_path + "8k_earth_daymap.png", "Earth Day");
@@ -120,9 +132,10 @@ private:
 
 
         float const r = 1.0f; 
+
+        // The two reused sphere meshes
         
         meshes["LQ Sphere"] = new vcl::mesh_drawable(vcl::mesh_primitive_sphere(r, { 0, 0, 0 }, 60, 40));
-        meshes["LLQ Sphere"] = new vcl::mesh_drawable(vcl::mesh_primitive_sphere(r, { 0, 0, 0 }, 5, 5));
         meshes["HQ Sphere"] = new vcl::mesh_drawable(vcl::mesh_primitive_sphere(r, { 0, 0, 0 }, 100, 100));
 
         // Initialize Sun
@@ -136,10 +149,14 @@ private:
 
         float sun_mass = 40000;
 
+        //  Not used but lets us scale telluric and gas planets seperately
+
         float r_scale_tell = 1.0f;
         float r_scale_gas = 1.0f;
         // Initialize Earth
 
+
+        // Planete initializations follow - distances are proportional to accual ones, but the sun is tiny compared to the planets
        
 
         Planete_Drawable* mercury = new Planete_Drawable(get_mesh("LQ Sphere"), { 200.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
@@ -271,7 +288,7 @@ private:
 
     }
 
-    // Complexité carastrophique, à refaire
+    // Complexitée à améliorer
     Object_Drawable* closest_object_rec(vcl::vec3 pos, Object_Drawable* p, double t) {
         float mindist = vcl::norm(pos - p->position(t));
         auto minp = p;

@@ -19,15 +19,14 @@ struct perlin_noise_parameters
 perlin_noise_parameters parameters;
 
 
-
+// Creates a asteroid mesh with perlin noise.
 vcl::mesh_drawable& create_ast_mesh(float radius) {
 
 
     vcl::mesh sphere = vcl::mesh_primitive_sphere(radius);
 
     int N = sphere.position.size();
-    float rand_parameter = vcl::rand_interval(0, 1); 
-    std::cout  << "rp "  << rand_parameter << std::endl;
+    float rand_parameter = vcl::rand_interval(0, 1);  // Makes different asteroids (though not as different as we would have liked)
 
     for (int k = 0; k < N; k++) {
 
@@ -35,9 +34,9 @@ vcl::mesh_drawable& create_ast_mesh(float radius) {
         vcl::vec3 n0 = vcl::normalize(sphere.position[k]);
         vcl::vec3 n = (n0 + vcl::vec3(1, 1, 1)) / 2;
 
-        float const noiseX = noise_perlin({ pow(n.y + rand_parameter,2), pow(n.z + rand_parameter,2), rand_parameter }, parameters.octave, parameters.persistency, parameters.frequency_gain);
-        float const noiseY = noise_perlin({ pow(n.x + rand_parameter,2), pow(n.z + rand_parameter,2), rand_parameter }, parameters.octave, parameters.persistency, parameters.frequency_gain);
-        float const noiseZ = noise_perlin({ pow(n.x + rand_parameter,2), pow(n.y + rand_parameter,2), rand_parameter }, parameters.octave, parameters.persistency, parameters.frequency_gain);
+        float const noiseX = noise_perlin({ pow(n.y ,2), pow(n.z,2), rand_parameter }, parameters.octave, parameters.persistency, parameters.frequency_gain);
+        float const noiseY = noise_perlin({ pow(n.x,2), pow(n.z,2), rand_parameter }, parameters.octave, parameters.persistency, parameters.frequency_gain);
+        float const noiseZ = noise_perlin({ pow(n.x,2), pow(n.y,2), rand_parameter }, parameters.octave, parameters.persistency, parameters.frequency_gain);
 
         float const noise = (noiseX + noiseY + noiseZ) / 3;
 
@@ -50,7 +49,10 @@ vcl::mesh_drawable& create_ast_mesh(float radius) {
 
     Scene_initializer s = Scene_initializer::getInstance();
 
-    s.add_mesh(m, "asteroid_" + std::to_string(num_ast_mesh));
+    s.add_mesh(m, "asteroid_" + std::to_string(num_ast_mesh)); // Meshes are stored
+    /* At the moment, each asteroid has its own mesh, but this allows us to create a limited number of meshes and distribute them randomly to many more asteroids.
+    * We did not have time to implement this yes, at a heavy cost to the GPU
+    */
 
     num_ast_mesh += 1;
 
@@ -73,6 +75,7 @@ Asteroid_Drawable * create_ast(float M, vcl::vec3 position_ini, vcl::vec3 speed_
     return ast;
 }
 
+// Generates random position in a torus of radius R and thickness depth. Ex and Ez are useful vectors
 vcl::vec3 generate_rand_position(float R, float depth, vcl::vec3 Ex, vcl::vec3 Ez) {
     vcl::vec3 p;
     std::normal_distribution<float> distribution1(R, depth);
@@ -86,6 +89,7 @@ vcl::vec3 generate_rand_position(float R, float depth, vcl::vec3 Ex, vcl::vec3 E
     return p;
 }
 
+// Random speed
 vcl::vec3 generate_rand_speed(vcl::vec3 speed_ini, float rand_speed) {
 
 
@@ -99,6 +103,7 @@ vcl::vec3 generate_rand_speed(vcl::vec3 speed_ini, float rand_speed) {
     return speed;
 }
 
+// Create belt object and the asteroids within it
 Belt create_belt(Object_Drawable* parent, float parentmass, vcl::vec3 ax, float R, float depth, int N, float mass_ast, float radius_ast, float rand_speed) {
     // N number of asteroids
 
@@ -144,6 +149,8 @@ Belt create_belt(Object_Drawable* parent, float parentmass, vcl::vec3 ax, float 
         float M = vcl::rand_interval(mass_ast * 3 / 4, mass_ast * 5 / 4);
         Asteroid_Drawable * ast = create_ast(M, p, v, radius_ast);
         ast->name = "ast_" + std::to_string(ceinture.elements.size());
+        // Asteroids are added to the global tree structure, and could be created around any object!
+
         parent->enfants.push_back(ast);
         ast->parent = parent;
 

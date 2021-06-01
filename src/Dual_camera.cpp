@@ -16,6 +16,7 @@ void Dual_camera::switch_to_free()
 {
 	if (mode == camera_mode::FREE) return;
 
+	// Allows for no visual change when leaving centered mode
 	free_camera.position_camera = centered_camera.position();
 	free_camera.orientation_camera = centered_camera.orientation();
 
@@ -38,7 +39,7 @@ vcl::rotation Dual_camera::orientation() const
 void Dual_camera::set_center_of_rotation(vcl::vec3 cor, float minrad)
 {
 	min_rad = minrad;
-	centered_camera.distance_to_center = std::max(centered_camera.distance_to_center, minrad + 0.01f);
+	centered_camera.distance_to_center = std::max(centered_camera.distance_to_center, minrad + 0.1f); // Make sure planets are never entered (does not work well with asteroids)
 	centered_camera.center_of_rotation = cor;
 
 }
@@ -47,8 +48,9 @@ void Dual_camera::slide_distance_to_center(double dtc)
 {
 	if (mode == camera_mode::CENTERED) {
 
+		// Make sure planets are never entered (does not work well with asteroids)
 		centered_camera.distance_to_center = min_rad + (centered_camera.distance_to_center - min_rad)* (1.0f + dtc);
-		centered_camera.distance_to_center = std::max(centered_camera.distance_to_center, 0.01f);
+		centered_camera.distance_to_center = std::max(centered_camera.distance_to_center, 0.1f);
 	}
 		centered_camera.manipulator_scale_distance_to_center(dtc);
 }
@@ -77,6 +79,7 @@ void Dual_camera::manipulator_rotate_trackball(vcl::vec2 const& p0, vcl::vec2 co
 		free_camera.orientation_camera = free_camera.orientation_camera * inverse(r);
 	}
 
+	// Stops inertia after a while
 	if (vcl::norm(p1 - p0) > 0.01)
 		dp_trackball = p1 - p0;
 }
@@ -96,6 +99,11 @@ vcl::mat4 Dual_camera::matrix_view_or_only() const
 void Dual_camera::update(double t, vcl::glfw_state state)
 {
 
+	// Inertia is calculated at each moment and when the mouse button is let go, rotation speed decreases exponentially
+
+	// This does not work too well because it doesn't always store the last movement 
+	//(if there is no mouvement, manipulator_rotate_trackball is never called and intertia never set to zero)
+	// Easily fixed but tedious 
 
 	if (!vcl::is_equal(dp_trackball, { 0.0f, 0.0f })) {
 		dp_trackball *= std::exp(-(t - last_inertia)/inertia);

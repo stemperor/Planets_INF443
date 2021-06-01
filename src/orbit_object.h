@@ -11,11 +11,14 @@ void print(float s, std::string mess = "") {
     std::cout << mess << ": " << s << std::endl;
 };
 
-float p_size = 1.0f;
+float p_size = 1.0f; // Planet sizes -> use to scale all objects except asteroids and the sun
 
-double random_rotate_time = 100000.0;
+// All planets are initially set at the same axis. 
+// A large start time randomizes their positions 
+double random_rotate_time = 100000.0; 
 
 
+// Characterizes a circular orbit, the caracteristics of which can be gotten at any time t.
 struct Orbit_Object {
 
     // Caractéristiques de l'objet
@@ -55,11 +58,14 @@ struct Orbit_Object {
 
 };
 
-
+// Initializes an Obrit_Object. The trajectory is orthogonal to ax, and around zero.
 void init_orbit_circ(Orbit_Object& obj, float parent_mass, vcl::vec3 initial_position, vcl::vec3 ax = { 0.0f, 0.0f, 0.0f });
 
+
+// Any object physical object that will be drawn. It is part of a tree.
+// This class is abstract
 struct Object_Drawable {
-    Object_Drawable* parent = nullptr;
+    Object_Drawable* parent = nullptr; // nullptr means top of the tree
     std::vector<Object_Drawable*> enfants;
 
     std::string name;
@@ -74,6 +80,7 @@ struct Object_Drawable {
         return (rotation_speed * t);
     }
 
+    // Must be redefined in children classes
     virtual vcl::vec3 position(double t) = 0;
 
     virtual vcl::vec3 position(double t, vcl::vec3 parent_pos) = 0;
@@ -84,7 +91,7 @@ struct Object_Drawable {
     GLuint shader;
     shading_parameters_phong shading;
 
-
+    // A reference to a mesh is stores for reusability purposes
     mesh_drawable& mesh;
 
     Object_Drawable(mesh_drawable& d) :mesh(d) {}
@@ -114,7 +121,9 @@ struct Object_Drawable {
 
 };
 
-struct Planete_Drawable: public Object_Drawable {       //Il faudrait avoir un meshDrawable quelque part
+
+// Just like Object_Drawables but with a Orbit_Object to define a trajectory
+struct Planete_Drawable: public Object_Drawable {
     Orbit_Object* planete = nullptr;
 
     Planete_Drawable(mesh_drawable& d, vec3 initpos, vec3 axis, float parentmass) :Object_Drawable(d) {
@@ -151,9 +160,18 @@ struct Planete_Drawable: public Object_Drawable {       //Il faudrait avoir un m
 
 };
 
+// Earth is special and has its own object. It is defined by:
+/*
+* A texture
+* A cloud texture
+* A specularity texture
+* A bump map
+* A nighttime texture
+* Other paremeters to do with clouds
+*/
 struct Earth_Drawable : public Planete_Drawable{       //Il faudrait avoir un meshDrawable quelque part
     
-   
+   // Clouds turn with the earth at a slightly different speed for parallax results
     float cloud_rel_speed = 0.05;
 
     GLuint cloud_texture;
@@ -175,7 +193,7 @@ struct Earth_Drawable : public Planete_Drawable{       //Il faudrait avoir un me
         drawearth(mesh, scene, night_texture, spec_texture, bump_texture);
 
         mesh.transform.scale += cloud_height*p_size;
-        //mesh.transform.rotate = vcl::rotation(rotation_axis, cloud_rel_speed * t) * mesh.transform.rotate;
+
         mesh.transform.rotate = vcl::rotation(rotation_axis, cloud_rel_speed*t) * mesh.transform.rotate;
         mesh.shading = cloud_shading;
         mesh.shader = cloud_shader;
@@ -210,6 +228,8 @@ struct Sun_Drawable : public Object_Drawable {
     }
 };
 
+
+// Asteroid drawables are a bit weird since they do not really know their position. They are updated by a belt object
 struct Asteroid_Drawable : public Object_Drawable {
 
     float mass;
@@ -239,6 +259,8 @@ struct Asteroid_Drawable : public Object_Drawable {
 
 };
 
+
+// Manages asteroids
 struct Belt {
 
     // Caractéristiques de la trajectoire
@@ -284,19 +306,18 @@ struct Belt {
                     ej.speed += -diff * dt * ka / (ej.mass * pow(vcl::norm(diff), 2));
                 }
             }
-
+            // Calculate the projected position on the normal orbit
             vcl::vec3 projax = ei.pos - axis * vcl::dot(ei.pos, axis);
             float dst = vcl::norm(projax);
-            projax = projax / dst * radius_orbit;
+            projax = projax / dst * radius_orbit; 
+
             ei.speed += -(ei.speed - speed_rotation * vcl::normalize(vcl::cross(axis, ei.pos))) * dt * lambda / ei.mass;   //utheta au projeté vaut normalize(cross(axis, position))
 
+            // A force brings asteroids back to their orbit
             float ellip = 800.0f;
             if (ellip * std::pow(vcl::dot(ei.pos - projax, axis), 2) +  (radius_orbit - dst)*(radius_orbit - dst) > depth*depth) ei.pos += ei.speed * dt - (ei.pos - projax) * dt * sigma1 / ei.mass;
             else ei.pos += ei.speed * dt - (ei.pos - projax) * dt * sigma2 / ei.mass;
 
-
-
-            //print(elements[i].angle_projection, "rpoj");
         }
     }
 };
