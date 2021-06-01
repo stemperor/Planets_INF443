@@ -47,25 +47,27 @@ void main()
 {
 
 
-	vec3 pos2 = fragment.position;
+	vec3 pos2 = fragment.position_true;
 	float rel_time = t - length(pos2);
 	
-	float frequency = 1.5;
+	float frequency = 0.4;
 	float ox = snoise(vec4(pos2, rel_time/10) * frequency);
 	float oy = snoise(vec4((pos2 + 2000.0), rel_time/10) * frequency);
 	float oz = snoise(vec4((pos2 + 4000.0), rel_time/10) * frequency);
 
-	vec3 wind_offset = vec3(ox, oy, oz) * 0.1;
+	vec3 wind_offset = vec3(ox, oy, oz) * 0.16;
 
 	// Get the distance vector from the center
 	vec3 nDistVec = normalize(pos2 + wind_offset);
 	
 	vec3 normalvec = normalize(pos2);
 	
-	vec3 pos = pos2 + noise(vec4(nDistVec, rel_time/10), 5, 2.0, 0.7) * 0.1;
+	vec3 pos = pos2 + noise(vec4(nDistVec, rel_time/10), 5, 1.0, 0.7) * 0.5;
 	
-	float dist = length(pos + wind_offset);
-	float brightness = (1.0 / (dist * dist) - 0.1) * 0.7;
+	float sunrad = 5.0;
+	
+	float dist = (length(pos + wind_offset)- 0.9*sunrad);
+	float brightness = (1.0 / pow(abs(dist),0.5) - 0.1) * 0.7;
 	
 	vec4 col = brightness * vec4(1.0, 1.0, 1.0, 1.0);
 	

@@ -177,7 +177,8 @@ private:
 
         Earth->radius = 1.0 * r_scale_tell;
         Earth->name = "Earth";
-        Earth->rotation_speed = 0.0;
+        Earth->rotation_speed = 0.15;
+        Earth->rotation_axis = { 0, 0, 1 };
         Earth->shader = shaders["Earth Shader"];
         Earth->planete->mass = 1;
         Earth->cloud_shader = shaders["Mesh Shader"];
@@ -209,7 +210,8 @@ private:
         mars->parent = parent;
         mars->name = "Mars";
         mars->radius = 0.5*r_scale_tell;
-        mars->rotation_speed = 0.0;
+        mars->rotation_speed = 0.1;
+        mars->rotation_axis = vec3(0, 1, 0);
         mars->shader = shaders["Mesh Shader"];
         mars->planete->mass = 1;
         mars->texture = textures["Mars"];
@@ -221,7 +223,9 @@ private:
         jupiter->parent = parent;
         jupiter->name = "Jupiter";
         jupiter->radius = 11 * r_scale_gas;
-        jupiter->rotation_speed = 0.0;
+        jupiter->rotation_axis = vcl::rotation(vec3(1, 1, 1), vcl::pi / 20) * vec3(0, 1, 0);
+        jupiter->rotation_speed = 0.1;
+        jupiter->rot_corr_axis = vcl::rotation(vec3(1, 1, 1), vcl::pi / 20) * vcl::rotation(vec3(0, 1, 0), vcl::pi / 2);
         jupiter->shader = shaders["Mesh Shader"];
         jupiter->planete->mass = 1;
         jupiter->texture = textures["Jupiter"];
@@ -233,10 +237,12 @@ private:
         saturn->parent = parent;
         saturn->name = "Saturn";
         saturn->radius = 9 * r_scale_gas;
-        saturn->rotation_speed = 0.0;
+        saturn->rotation_speed = 0.1;
+        saturn->rotation_axis = vcl::rotation(vec3(1, 1, 0), vcl::pi / 10) * vec3(0, 1, 0);
         saturn->shader = shaders["Mesh Shader"];
         saturn->planete->mass = 1;
         saturn->texture = textures["Saturn"];
+        saturn->rot_corr_axis = vcl::rotation(vec3(1, 1, 0), vcl::pi / 10) * vcl::rotation(vec3(0, 1, 0), vcl::pi / 2) ;
 
         Planete_Drawable* uranus = new Planete_Drawable(get_mesh("LQ Sphere"), { 10000.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f }, sun_mass);
         parent->enfants.push_back(uranus);
@@ -244,7 +250,8 @@ private:
         uranus->parent = parent;
         uranus->name = "Uranus";
         uranus->radius = 4 * r_scale_gas;
-        uranus->rotation_speed = 0.0;
+        uranus->rotation_speed = 0.1;
+        uranus->rotation_axis = vec3(0, 1, 0);
         uranus->shader = shaders["Mesh Shader"];
         uranus->planete->mass = 1;
         uranus->texture = textures["Uranus"];
@@ -255,7 +262,8 @@ private:
         neptune->parent = parent;
         neptune->name = "Neptune";
         neptune->radius = 3.8 * r_scale_gas;
-        neptune->rotation_speed = 0.0;
+        neptune->rotation_speed = 0.1;
+        neptune->rotation_axis = vec3(0, 1, 0);
         neptune->shader = shaders["Mesh Shader"];
         neptune->planete->mass = 1;
         neptune->texture = textures["Neptune"];

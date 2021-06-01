@@ -48,27 +48,22 @@ float noise(vec4 position, int octaves, float frequency, float persistence);
 void main()
 {
 
-	vec3 nDistVec = normalize(fragment.position);
-	float spikeVal = snoise(vec4(nDistVec, turn) * 15.5) + 0.2;
+	vec3 normal = normalize(fragment.position);
+	float radlum = snoise(vec4(normal, turn) * 13) + 0.2;
 
 	 
 
 	float dist = length(fragment.position)*800;
 
-	float spikeBrightness = ((1.0 / pow(dist + 0.15, 3)) - 1.0);
-	spikeBrightness = spikeBrightness * 0.02 * clamp(spikeVal, 0.0, 1.0)*2;
+	float distlum = ((1.0 / pow(dist + 0.15, 3)) - 1.0);
+	distlum = distlum * 0.02 * clamp(radlum, 0.0, 1.0)*2;
 
 
 	vec2 uv_image = vec2(1.0-fragment.uv.y, fragment.uv.x); 
 
-	vec3 color = texture(image_texture, uv_image).rgb + spikeBrightness;
+	vec3 color = texture(image_texture, uv_image).rgb + distlum;
 	
-	float occ_corrected = sun_occlusion;
-	
-	if (sun_occlusion > 1){
-		occ_corrected = 1.0f/ sun_occlusion;
-	}
-	FragColor = vec4(color, 1.0)*occ_corrected;
+	FragColor = vec4(color, 1.0)*sun_occlusion;
 }
 
 

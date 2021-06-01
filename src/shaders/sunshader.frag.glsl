@@ -50,20 +50,26 @@ void main()
 	float n = (noise(vec4(pos/20, t/60), 4, 40.0, 0.7) + 1.0)*0.5;
 	
 	
-	float s = 0.4;
-	float frequency = 3.0;
+	float s = 0.2;
+	float frequency = 20.0;
 	float t1 = snoise(vec4(pos/20, 1.0) * frequency) - s;
 	float t2 = snoise(vec4((pos/20 + radius), 1.0) * frequency) - s;
-	float ss = (max(t1, 0.0) * max(t2, 0.0)) * 3.0;
+	float ss = (max(t1, 0.0) * max(t2, 0.0)) * 2.0;
 	
 	float basenoise = n - ss;
 	
-	vec3 color_object  = basenoise * vec3(1.0, 0.8, 0.8);
+	basenoise = clamp(basenoise, 0.0, 1.0);
+	vec3 col = vec3(0.93, 0.55, 0.21);
+	
+	col = pow(col, vec3(1-basenoise, 1-basenoise, 1-basenoise));
+	
+
+	vec3 color_object  = basenoise*col;
 	
 	vec3 color_shading = color_object;
 
 	
-	FragColor = vec4(color_shading, 1.0);
+	FragColor = vec4(color_shading, 1.0)*2;
 	
 	//FragColor = vec4(1.0, 1.0, 1.0, 1.0);
 }

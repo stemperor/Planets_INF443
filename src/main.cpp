@@ -60,8 +60,8 @@ int avg_times = 10;
 
 float aspect;
 
-float near_field_min = 0.0101;
-float near_field_max = 0.07;
+float near_field_min = 0.04;
+float near_field_max = 0.1;
 float near_field_max_dist = 5000.0f;
 
 
@@ -177,9 +177,16 @@ void initialize_data()
 	saturn_billboard.shader = s.get_shader("Satring Shader");
 
 
+
 	belt = create_belt((s.get_object("Sun")), 200000, { 1, 0, 0 }, 200, 10, 100 , 1, 2, 10);
 
-	focused = s.get_object("Saturn");
+	just_for_time.update();
+	selected = s.get_object("Saturn");
+	
+	focus_on_selected(just_for_time.t);
+
+	scene.camera.set_distance_to_center(s.get_object("Saturn")->radius_drawn() * 2);
+
 
 	for (auto ast : belt.elements) {
 
@@ -242,6 +249,7 @@ void display_frame()
 
 	saturn_billboard.transform.translate = satpos;
 	saturn_billboard.transform.scale = satrad * 2.2;
+	saturn_billboard.transform.rotate = vcl::rotation(vec3(1, 1, 0), vcl::pi / 10);
 
 	drawsatring(saturn_billboard, scene, satrad, satpos);
 
@@ -277,19 +285,19 @@ void display_frame()
 	occ = avg_occ;
 
 	// removes lens flare when properly seeing the sun - changing fov messes with the setting (for now)
-	if (dst < 15 * sunrad) {
-		occ *= std::max(0.0f, (dst - 5 * sunrad) / (15 * sunrad - 5 * sunrad));
+	if (dst < 30 * sunrad) {
+		occ *= std::max(0.0f, (dst - 5 * sunrad) / (30 * sunrad - 5 * sunrad));
 	}
 
-
-	sunbillboard.shader = s.get_shader("Sun Billboard Shader");
-	sunbillboard.transform.scale = s.get_object("Sun")->radius;
-
-	//drawsunflares(sunbillboard, scene, t);
-
 	sunbillboard.transform.translate = vcl::vec3();
+	sunbillboard.shader = s.get_shader("Sun Billboard Shader");
+	sunbillboard.transform.scale = s.get_object("Sun")->radius*5;
+
+	drawsunflares(sunbillboard, scene, t);
+
+	
 	sunbillboard.shader = s.get_shader("Sun Shine Shader");
-	sunbillboard.transform.scale = vcl::norm(scene.camera.position())/10 * 3;
+	sunbillboard.transform.scale = vcl::norm(scene.camera.position())/10 * 5;
 	sunbillboard.texture = s.get_texture("Sun Shine");
 
 
@@ -308,7 +316,7 @@ void display_frame()
 		pointer_billboard.shader = s.get_shader("Pointer Shader");
 
 		vec3 p = selected->position(t);
-		float r = selected->radius;
+		float r = selected->radius_drawn();
 		float dst = vcl::norm(scene.camera.position() - p);
 		vec3 normto = (p - scene.camera.position()) / dst;
 
@@ -350,7 +358,7 @@ void display_interface()
 
 	ImGui::Checkbox("Frame", &user.gui.display_frame);
 	ImGui::SliderFloat("planet_size", &p_size, 1.0f, 10.0f, "%.3f", 4.0f);
-	ImGui::SliderFloat("sun brightness", &occ_factor, 0.0f, 1.0f, "%.3f", 1.0f);
+	ImGui::SliderFloat("sun brightness", &occ_factor, 0.0f, 2.0f, "%.3f", 1.0f);
 
 	if (selected != nullptr) {
 
@@ -426,9 +434,16 @@ void key_event_callback(GLFWwindow* window, int key, int scan_code, int action, 
 		if (action == GLFW_PRESS) camera.switch_to_centered();
 		break;
 	
-	case GLFW_KEY_G:
+	case GLFW_KEY_L:
 		focus_on_selected(t);
 		break;
+
+	case GLFW_KEY_G:
+		focus_on_selected(t);
+		if (selected != nullptr) {
+			scene.camera.set_distance_to_center(focused->radius_drawn()*4);
+		}
+		
 
 	}
 
@@ -469,9 +484,8 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 			auto is_selected = s.closest_angle(vcl::normalize(ray), scene.camera.position(), t, good_angle);
 
-			if (is_selected != nullptr) {
-				switch_center_object(is_selected, t);
-			}
+			switch_center_object(is_selected, t);
+			
 
 		}
 	}

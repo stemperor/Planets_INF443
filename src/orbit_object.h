@@ -13,7 +13,7 @@ void print(float s, std::string mess = "") {
 
 float p_size = 1.0f;
 
-
+double random_rotate_time = 100000.0;
 
 
 struct Orbit_Object {
@@ -29,6 +29,7 @@ struct Orbit_Object {
     vcl::vec3 diameter_ini ; // rayon initial, à entrer par l'utilisateur, normalisé à 1 (utiliser normalize())
 
     vcl::vec3 position(float t){        // quel type pour le temps ?
+        t += random_rotate_time;
         if (norm(diameter_ini) == 0 || norm(axis) == 0)
             {vcl::call_error("norme non nulle", "définir un vecteur non vide", "Orbit_Object", "position", 22);}
         float angle = 2*3.14*t/period ;
@@ -39,6 +40,7 @@ struct Orbit_Object {
     }
 
     vcl::vec3 speed(float t){
+        t += random_rotate_time;
         if (norm(diameter_ini) == 0 || norm(axis) == 0)
             {vcl::call_error("norme non nulle", "définir un vecteur non vide", "Orbit_Object", "position", 22);}
         float angle = 2*3.14*t/period ;
@@ -64,6 +66,9 @@ struct Object_Drawable {
     float radius;
     vcl::vec3 rotation_axis = vcl::vec3(1, 0, 0);
     float rotation_speed = 0.0f;
+
+    // inital rotation to correct object axis - does not change with time
+    vcl::rotation rot_corr_axis = vcl::rotation();
 
     float rotation_angle(float t) {
         return (rotation_speed * t);
@@ -93,7 +98,8 @@ struct Object_Drawable {
         mesh.shader = shader;
         mesh.shading = shading;
 
-        mesh.transform.rotate = vcl::rotation({ 0, 0, 1 }, vcl::pi / 2);
+        // another systematic rotation because textures usually needed it
+        mesh.transform.rotate = vcl::rotation({ 0, 0, 1 }, -vcl::pi / 2) * rot_corr_axis;
         mesh.transform.rotate = vcl::rotation(rotation_axis, rotation_angle(t)) * mesh.transform.rotate;
         mesh.transform.translate = position(t);
 
@@ -148,7 +154,7 @@ struct Planete_Drawable: public Object_Drawable {       //Il faudrait avoir un m
 struct Earth_Drawable : public Planete_Drawable{       //Il faudrait avoir un meshDrawable quelque part
     
    
-    float cloud_rel_speed;
+    float cloud_rel_speed = 0.05;
 
     GLuint cloud_texture;
 
@@ -170,7 +176,7 @@ struct Earth_Drawable : public Planete_Drawable{       //Il faudrait avoir un me
 
         mesh.transform.scale += cloud_height*p_size;
         //mesh.transform.rotate = vcl::rotation(rotation_axis, cloud_rel_speed * t) * mesh.transform.rotate;
-        mesh.transform.rotate = vcl::rotation(rotation_axis, 0);
+        mesh.transform.rotate = vcl::rotation(rotation_axis, cloud_rel_speed*t) * mesh.transform.rotate;
         mesh.shading = cloud_shading;
         mesh.shader = cloud_shader;
         mesh.texture = cloud_texture;
